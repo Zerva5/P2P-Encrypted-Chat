@@ -3,11 +3,14 @@
 SENG360 Assignment 3: Message Application
 
 Group members:
-Lucas Mayall
-Dylan Hughes
-Sylvain Taghaoussi
-Josh Something something
 
+Lucas Mayall
+
+Dylan Hughes
+
+Sylvain Taghaoussi
+
+Josh Blanch
 
 ## Getting started
 
