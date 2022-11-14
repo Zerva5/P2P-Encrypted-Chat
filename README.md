@@ -40,4 +40,48 @@ Josh Blanch
 Use a Data Flow Diagrams (DFD) to design your application. Specify all security mechanisms used in your system, including cryptographic ciphers, keys, key generation mechanisms, and security protocols. Use the gitlab Wiki page for your work. Make sure that each team member edits their own contribution / annotation themselves.
 
 Explain how your design implements the requirements above.
->>>>>>> 1102e8c4317bd8b7a871ca3a4d14133e166ae144
+
+# Code breakdown
+## Netcode
+- Message format: timestamp, message hash, message
+- Message hash for message integrity
+- Encrypt with sender private key and reciever public key
+## Encryption/Decryption
+- Generate public/private key pair
+- Forward secrecy handshake (see docs)
+- Encrypt bytes via key
+- Decrypt bytes via key
+
+## Saving & Parsing message history
+- Save label, public key at top of file
+- save timestamp, sender label, and message for each message
+
+
+## "main.py"
+1. Run it
+2. Waits for you to run command.
+Commands are: Login, create account, delete account, delete message history, initiate chat.
+
+## Initiate Chat
+- User gives label and IP to initiate chat with someone 
+- If label doesn't exist user will have to provide label, IP, and public key.
+- When saving message history it will also save the label and public key if the connection was successful.
+
+## Login
+- PRovide username and private key
+- If successful unlock
+
+## Delete message history
+- Have to be logged in
+- User provides "contact name" of conversation to be deleted
+- Delete that file
+
+### Create Account
+- Generate "long term" public and private keys
+- Create folder with "username" for message history and key pair storage
+
+### Delete
+- Delete folder with username
+
+
+
