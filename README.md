@@ -76,11 +76,11 @@ Commands are: Login, create account, delete account, delete message history, ini
 - User provides "contact name" of conversation to be deleted
 - Delete that file
 
-### Create Account
+## Create Account
 - Generate "long term" public and private keys
 - Create folder with "username" for message history and key pair storage
 
-### Delete
+## Delete
 - Delete folder with username
 
 
