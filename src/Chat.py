@@ -38,7 +38,7 @@ class Chat:
         """
         return
 
-    def Recieve(self) -> Message:
+    def Receive(self) -> Message:
         """
         Check for recieved messages and decrpyt them.
         Also decode them, verify message integrity using message hash and timestamp
