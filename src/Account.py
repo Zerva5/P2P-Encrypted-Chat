@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import datetime
 
 @dataclass
@@ -6,7 +6,7 @@ class Account:
     label: str
     publicKey: str
     IP: str = ""
-    privateKey: str = dataclass.field(init=False)
+    privateKey: str = field(init=False)
     
     def InitalizeAccount(self):
         """
@@ -14,6 +14,10 @@ class Account:
         """
 
         return
+
+    @staticmethod
+    def NoneAccount():
+        return Account("", "")
 
     
 

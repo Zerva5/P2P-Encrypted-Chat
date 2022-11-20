@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import datetime
 from Account import Account
 from Message import Message
@@ -9,9 +9,9 @@ class Chat:
     sender: Account
     recipient: Account
 
-    IP: str = dataclass.field(init=False)
-    sessionKey: str = dataclass.field(init=False) # Not 100% if its one key or two.
-    messages: list[Message] = []# list is the same as an array
+    IP: str = field(init=False)
+    sessionKey: str = field(init=False) # Not 100% if its one key or two.
+    messages: list[Message] = field(default_factory=list)# list is the same as an array
 
     def __post_init__(self):
         """
