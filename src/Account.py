@@ -7,6 +7,7 @@ class Account:
     publicKey: str
     IP: str = ""
     privateKey: str = field(init=False)
+    active: bool = True
     
     def InitalizeAccount(self):
         """
@@ -17,6 +18,8 @@ class Account:
 
     @staticmethod
     def NoneAccount():
+        ret = Account("", "")
+        ret.active = False
         return Account("", "")
 
     @staticmethod

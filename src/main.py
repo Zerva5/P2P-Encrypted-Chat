@@ -1,22 +1,32 @@
+from ctypes import ArgumentError
 from dataclasses import dataclass
 import datetime
 from Account import Account as AC
-from Chat import Chat
+from Chat import Chat as CH
 from Encrypt import *
-
+from collections import namedtuple
 
 #from Message import Message
 
-validCommands = ["login", "create_account", "delete_account", "chat", "history", "exit"]
 
-def AccountFromLabel(label:str) -> AC:
-    #TODO
-    return AC.NoneAccount()
+COMMANDS = ["", "login", "create_account", "delete_account", "chat", "delete_history", "exit", "help"]
+NUMARGS = [0, 3, 2, 2, 4, 2, 1, 1]
 
+Status = namedtuple('Status', ['chat', 'account'])
 
+def Exit_Wrapper(status: Status, argList: list):
+    print("exit?")
+    return status, None
+ 
+def Help_Wrapper(status: Status, argList: list):
+    print("lmao no help 4 u")
+    return status, None
 
+def Login_Wrapper(status: Status,argStr: list):
+    print("Login::")
+    print(argStr)
 
-
+    return status, None
 
 def Login(label: str, privateKey: str) -> AC:
     """
@@ -24,6 +34,11 @@ def Login(label: str, privateKey: str) -> AC:
     If login was successful then return the logged in account"
     """
     return AC.NoneAccount()
+
+def CreateAccount_Wrapper(status: Status,argStr: list):
+    print("Create account::")
+    print(argStr)
+    return status, None
 
 def CreateAccount(label: str) -> AC:
     """
@@ -34,6 +49,11 @@ def CreateAccount(label: str) -> AC:
 
     return AC.NoneAccount()
 
+def DeleteAccount_Wrapper(status: Status,argStr: list):
+    print("Delete account::")
+    print(argStr)
+    return status, None
+
 def DeleteAccount(account: AC) -> bool:
     """
     Take a label and delete the associated account. Account must be the "currently logged in account" for operation to be successful
@@ -41,11 +61,21 @@ def DeleteAccount(account: AC) -> bool:
 
     return False
 
+def DeleteHistory_Wrapper(status: Status, argStr: list):
+    print("Delete history::")
+    print(argStr)
+    return status, None
+
 def DeleteHistory(account: AC, recipient: AC) -> bool:
     """
     Delete message history with a particular user. Must be logged in to the account in the chat to delete message history
     """
     return False
+
+def InitChat_Wrapper(status: Status,argStr: list):
+    print("init chat::")
+    print(argStr)
+    return status, None
 
 def InitChat(account: AC, recipientLabel: str, IP: str):
     """
@@ -54,96 +84,82 @@ def InitChat(account: AC, recipientLabel: str, IP: str):
     Once connection successful create file for this chat and add recipient public key to first line
     """
 
-def main():
+
+def ParseCommand(cmdStr: str):
+
+    # empty line!
+    if(len(cmdStr) == 0):
+        return 0, []
+        
+
+    strSplit = cmdStr.split()
+
+    cmdIndex = -1
+
+    for index,element in enumerate(COMMANDS):
+        if(element == strSplit[0]):
+           cmdIndex = index
+           break
+    else:
+        # command not found!
+        return cmdIndex,[]
+
+    ## Now we parse the parameters
+    if(NUMARGS[cmdIndex] != len(strSplit)):
+        raise ArgumentError("Invalid number of arguments!")
+
+    ## now we can assume they are the right number of args
+    argList = []
+
+    # get all but the actual command
+    for arg in strSplit[1:]:
+        argList.append(arg)
+
+    return cmdIndex, argList
+
+def NoCommand(status, cmdArgs):
+    return status, None
+
+def InputLoop():
     """Take input and call the different commands"""
 
-    loggedIn = AC.NoneAccount()
-    invalidCmd = False
-    # Valid commands:
-    #3 login $label$ $privatekey$ 
-    #2 create_account $label$
-    #2 delete_account $label$
-    #3-4 chat $label$ $ip$ $port=some default$
-    #3 delete_history $label$
-    #3 history view $label$
-    
+    commands = [NoCommand, Login_Wrapper, CreateAccount_Wrapper, DeleteAccount_Wrapper, InitChat_Wrapper, DeleteHistory_Wrapper, Exit_Wrapper, Help_Wrapper]
+
+    status = Status(CH.NoneChat(), AC.NoneAccount())
     
     # Input loop
     while(True):
-        if(invalidCmd):
-            print("Invalid command! Please enter 'help' for help")
-            invalidCmd = False
-        
-        commandStr = input("Please type a command then press enter. For help enter 'h'.")
 
-        commandSplit = commandStr.split(' ')
-
-        ### basic input checks
-
-        # Check its not just whitespace
-        if(len(commandSplit) == 0):
-            continue
-
-        mainCmd = commandSplit[0]
-
-        # make sure the first word is a valid command
-        if(not mainCmd in validCommands):
-            invalidCmd = True
-            continue
-
-        # make sure the number of total words is correct
-        if(not(1 < len(commandSplit) and len(commandSplit) < 5)):
-            if(mainCmd == "help" and len(commandSplit) == 1):
-                print("SOME HELP")
-            else:
-                invalidCmd = True
-
-            continue
-        
-        ### Done basic checks
-
-        # commands that take 3 args
-        if(len(commandSplit) == 3):
-            if(mainCmd == "login"):
-                try:
-                    Account = Login(commandSplit[1], commandSplit[2])
-                except SyntaxError:
-                    print("Invalid syntax! Use: login username privatekey")
-
-        elif(len(commandSplit) == 4):
-            if(mainCmd == "chat"):
-                print("so you wanna chat do you? well I don't want to finish this right now so you can't :(")
-
-
-        elif(len(commandSplit) == 2):
-            if(mainCmd == "create_account"):
-                try:
-                    Account = CreateAccount(commandSplit[1])
-                except SyntaxError:
-                    print("Invalid syntax! Use: create_account username")
-            elif(mainCmd == "delete_account"):
-                try:
-                    res = DeleteAccount(AccountFromLabel(commandSplit[1]))
-                except SyntaxError:
-                    print("Invalid syntax! Use: create_account username")
-            elif(mainCmd == "delete_history"):
-                try:
-                    if(loggedIn == AC.NoneAccount()):
-                        raise Exception("Not logged in")
-
-                    res = DeleteHistory(loggedIn, AccountFromLabel(commandSplit[1]))
-                except SyntaxError:
-                    print("Invalid syntax! Use: create_account username")
-                except Exception as e:
-                    print(str(e))
-            else:
-               print("shouldn't get here!")
+        if(status.chat.active):
+            ## Need to make thread safe print!
+            chatStr = input(status.account.label)
+            ## send input to the chat!
 
         else:
-            print("wrong number of arguments!")
-    
-    return
+            commandStr = input("Please type a command then press enter. For help enter 'h'. > ")
 
+            cmdIndex = -1
+            cmdArgs = []
+
+            try:
+                cmdIndex, cmdArgs = ParseCommand(commandStr)
+            except ArgumentError as e:
+                print("Argument Error: " + str(e))
+                continue
+
+            # No command!
+            if(cmdIndex == -1):
+                print("invalid command!")
+                continue
+
+            status, res = commands[cmdIndex](status, cmdArgs)
+        
+        
+    
+
+def main():
+    InputLoop()
+    return
 
 if __name__ == "__main__":
     main()
