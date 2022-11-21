@@ -19,8 +19,12 @@ class Account:
     def NoneAccount():
         return Account("", "")
 
-    
-
+    @staticmethod
+    def GetFromLabel(label: str):
+        """
+        Try and find previously created account with the given label, throw exception if not found, return account if found
+        """
+        return
 
     def DeleteHistory(self, label: str):
         """

@@ -12,6 +12,7 @@ class Chat:
     IP: str = field(init=False)
     sessionKey: str = field(init=False) # Not 100% if its one key or two.
     messages: list[Message] = field(default_factory=list)# list is the same as an array
+    active: bool = False
 
     def __post_init__(self):
         """
@@ -20,6 +21,10 @@ class Chat:
         Maybe print out messages from last connection with this person?
         """
         return
+
+    @staticmethod
+    def NoneChat():
+        return Chat(Account.NoneAccount(), Account.NoneAccount())
         
     def Connect(self) -> bool:
         """
