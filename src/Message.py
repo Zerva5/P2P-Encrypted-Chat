@@ -10,4 +10,6 @@ class Message:
     recipient: Account
     
     
+    def toString(self):
+        return ""
         
