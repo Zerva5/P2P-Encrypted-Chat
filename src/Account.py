@@ -147,7 +147,7 @@ class Account:
     def NoneAccount(): #For making an object equivalent to None
         ret = Account("", "")
         ret.active = False
-        return Account("", "")
+        return ret
 
 
     @staticmethod

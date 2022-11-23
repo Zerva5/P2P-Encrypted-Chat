@@ -2,17 +2,21 @@ from ctypes import ArgumentError
 from dataclasses import dataclass
 import datetime
 from Account import Account as AC
+from Message import Message as MSG
 from Chat import Chat as CH
 from Encrypt import *
 from collections import namedtuple
-
+import threading
+import socket as Socket
 #from Message import Message
 
 
-COMMANDS = ["", "login", "create_account", "delete_account", "chat", "delete_history", "exit", "help"]
-NUMARGS = [0, 3, 2, 2, 4, 2, 1, 1]
+COMMANDS = ["", "login", "create_account", "delete_account", "chat", "delete_history", "exit", "help", "logout"]
+NUMARGS = [0, 3, 2, 2, 3, 2, 1, 1, 1]
 
 Status = namedtuple('Status', ['chat', 'account'])
+
+PORT = 12666
 
 def Exit_Wrapper(status: Status, argList: list):
     print("exit?")
@@ -22,18 +26,36 @@ def Help_Wrapper(status: Status, argList: list):
     print("lmao no help 4 u")
     return status, None
 
-def Login_Wrapper(status: Status,argStr: list):
-    print("Login::")
-    print(argStr)
 
-    return status, None
 
 def Login(label: str, privateKey: str) -> AC:
     """
     Takes login info and returns true if login was successful.
     If login was successful then return the logged in account"
     """
-    return AC.NoneAccount()
+
+    retAccount = AC.GetFromLabel(label, privateKey)
+    
+    return retAccount
+
+def Login_Wrapper(status: Status,argStr: list):
+    print("Login::")
+    print(argStr)
+    
+
+    try:
+        newAccount = Login(argStr[0], argStr[1])
+        status = Status(status.chat, newAccount)
+    except IndexError as e:
+        print(str(e))
+    except Exception as e:
+        print("Some other login error!", str(e))
+
+    print("Logged in as", status.account.label)
+
+
+
+    return status, None
 
 def CreateAccount_Wrapper(status: Status,argStr: list):
     print("Create account::")
@@ -72,18 +94,52 @@ def DeleteHistory(account: AC, recipient: AC) -> bool:
     """
     return False
 
-def InitChat_Wrapper(status: Status,argStr: list):
-    print("init chat::")
-    print(argStr)
-    return status, None
 
-def InitChat(account: AC, recipientLabel: str, IP: str):
+
+def InitChat(account: AC, recipientLabel: str, IP: str, port=PORT):
     """
     Tries to find recipient account based on the label, if it can't find it ask for the recipients public key then create a new recipient. Once thats done start a new chat object at the given IP.
 
     Once connection successful create file for this chat and add recipient public key to first line
     """
+    recipientAccount = AC.NoneAccount()
 
+    #try:
+        #recipientAccount = status.Account.GetContact(recipientLabel)
+       # recipientAccount = AC("Dancer", "public key", IP)
+    #except:
+    pubKey = input("This person isn't a contact yet, please enter their public key: ")
+    recipientAccount = AC(recipientLabel, pubKey, IP)
+
+    newChat = CH(account, recipientAccount)
+    newChat.sendIP = recipientAccount.IP
+    newChat.sendPort = PORT
+    newChat.recvPort = port
+
+    newChat.InitConnection()
+
+    # Save new contact here
+
+    return newChat
+    
+def InitChat_Wrapper(status: Status,argStr: list):
+    print("init chat::")
+    print(argStr)
+
+    if(not status.account.active):
+        print("Need to be logged in to start a chat!")
+        return status,None
+
+    try:
+        newChat = InitChat(AC.NoneAccount(), argStr[0], argStr[1], status.chat.recvPort)
+    except ConnectionRefusedError:
+        print("Connection refused!")
+        return status, None
+
+        
+    status = Status(newChat, status.account)
+    
+    return status, None
 
 def ParseCommand(cmdStr: str):
 
@@ -120,23 +176,52 @@ def ParseCommand(cmdStr: str):
 def NoCommand(status, cmdArgs):
     return status, None
 
-def InputLoop():
+def Logout(Account: AC):
+    """
+    Save all the chat history, contacts, etc. Encrypt everything and 
+    """
+
+    return 
+
+def Logout_Wrapper(status, cmdArgs):
+    if(status.account.active):
+        print(status.account.label, "has been logged out")
+        Logout(status.account)
+        status = Status(status.chat, AC.NoneAccount())
+    else:
+        print("No account currently logged in")
+
+    
+    return status, None
+
+def InputLoop(status: Status):
     """Take input and call the different commands"""
 
-    commands = [NoCommand, Login_Wrapper, CreateAccount_Wrapper, DeleteAccount_Wrapper, InitChat_Wrapper, DeleteHistory_Wrapper, Exit_Wrapper, Help_Wrapper]
+    commands = [NoCommand, Login_Wrapper, CreateAccount_Wrapper, DeleteAccount_Wrapper, InitChat_Wrapper, DeleteHistory_Wrapper, Exit_Wrapper, Help_Wrapper, Logout_Wrapper]
 
-    status = Status(CH.NoneChat(), AC.NoneAccount())
+
+    print("Please type a command then press enter. For help enter 'h'.")
     
     # Input loop
     while(True):
 
         if(status.chat.active):
             ## Need to make thread safe print!
-            chatStr = input(status.account.label)
+            chatStr = input(status.account.label + " > ")
             ## send input to the chat!
 
+            newMsg = MSG(chatStr, datetime.datetime.now(), status.account, status.chat.recipient)
+
+            print("sending: ", chatStr)
+            status.chat.Send(newMsg)
+            #status.chat.chatSocket.send(chatStr.encode())
+            
         else:
-            commandStr = input("Please type a command then press enter. For help enter 'h'. > ")
+            if(status.account.active):
+                commandStr = input(status.account.label + " > ")
+            else:
+                commandStr = input(" > ")                
+
 
             cmdIndex = -1
             cmdArgs = []
@@ -154,11 +239,73 @@ def InputLoop():
 
             status, res = commands[cmdIndex](status, cmdArgs)
         
-        
+
+
+def RecvLoop(status: Status, listenSocket: Socket.socket):
+
+    connection = None
     
+    while True:
+        try:
+            if(connection is None):
+                print("listening")
+                connection, addr = listenSocket.accept()
+                print("done")
+            else:
+                message = connection.recv(2048)
+
+                print(message.decode())
+
+                if(message):
+                    # if we are currently chatting
+                    if(status.chat.active):
+                        status.chat.Receive()
+
+                        
+                        # otherwise this is a new connection!
+                    else:
+                        status.chat.active = True
+                        print("new connection request!")
+                else:
+                    print("message empty :(")
+                    status.chat.active = False
+                    connection = None
+
+
+        except:
+            continue
+    return
+
+def StartRecv(status: Status):
+    listenSocket = Socket.socket()
+    
+    port=PORT
+
+    recvIP = "127.0.0.1"
+
+    try:
+        listenSocket.bind((recvIP, port))
+    except OSError as e:
+        port += 1
+        listenSocket.bind((recvIP, port))        
+        
+    listenSocket.listen(1)
+
+    #RecvLoop(status, listenSocket)
+
+    t = threading.Thread(target = RecvLoop, args=(status, listenSocket))
+    t.start()
+
+    status.chat.recvPort = port
+
+    return status
+
 
 def main():
-    InputLoop()
+    status = Status(CH.NoneChat(), AC.NoneAccount())
+    status = StartRecv(status)
+    print(status.chat.recvPort)
+    InputLoop(status)
     return
 
 if __name__ == "__main__":

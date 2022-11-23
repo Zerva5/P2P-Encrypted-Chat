@@ -2,17 +2,27 @@ from dataclasses import dataclass, field
 import datetime
 from Account import Account
 from Message import Message
-
+import socket as Socket
+#import _thread
+import threading
+ 
+print_lock = threading.Lock()
 
 @dataclass    
 class Chat:
     sender: Account
     recipient: Account
 
-    IP: str = field(init=False)
+    sendIP: str = field(init=False)
+    recvIP: str = field(init=False)
     sessionKey: str = field(init=False) # Not 100% if its one key or two.
     messages: list[Message] = field(default_factory=list)# list is the same as an array
     active: bool = False
+    chatSocket: Socket.socket = Socket.socket()
+    listenSocket: Socket.socket = Socket.socket()
+
+    sendPort: int = field(init=False)
+    recvPort: int = field(init=False)
 
     def __post_init__(self):
         """
@@ -25,8 +35,9 @@ class Chat:
     @staticmethod
     def NoneChat():
         return Chat(Account.NoneAccount(), Account.NoneAccount())
-        
-    def Connect(self) -> bool:
+
+
+    def InitConnection(self) -> bool:
         """
         Connect to IP
         Request a chat
@@ -34,16 +45,29 @@ class Chat:
          - Perform some form of key exchange (https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange) for example.
         Return once connection is established, identify verified, and keys exchanged
         """
-        return False
+        try:
+            self.chatSocket.connect((self.sendIP, self.sendPort))
+
+            print("Chat connection complete")
+            self.active = True
+
+            self.chatSocket.send(("port:"+str(self.recvPort)).encode())
+
+        except ConnectionRefusedError as e:
+            print("Connection refused!")
+
+        return True
 
     def Send(self, message: Message):
         """
         Encrypt and send the message.
         Format message to have the message hash and timestamp
         """
+        self.chatSocket.send(message.body.encode())
+        self.messages.append(message)
         return
 
-    def Receive(self) -> Message:
+    def Receive(self, raw: str) -> Message:
         """
         Check for recieved messages and decrpyt them.
         Also decode them, verify message integrity using message hash and timestamp
