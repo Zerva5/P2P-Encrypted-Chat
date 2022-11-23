@@ -64,7 +64,7 @@ class Account:
         
 
 
-    def DeleteHistory(self, label: str, dictionary):
+    def DeleteHistory(self, contactLabel: str, dictionary):
         """
         Delete message history to/from a given label
         """
