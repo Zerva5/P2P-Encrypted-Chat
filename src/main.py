@@ -5,7 +5,8 @@ from Account import Account as AC
 from Chat import Chat as CH
 from Encrypt import *
 from collections import namedtuple
-
+import threading
+import socket as Socket
 #from Message import Message
 
 
@@ -33,6 +34,9 @@ def Login(label: str, privateKey: str) -> AC:
     Takes login info and returns true if login was successful.
     If login was successful then return the logged in account"
     """
+
+    retAccount = AC.GetFromLabel(label)
+    
     return AC.NoneAccount()
 
 def CreateAccount_Wrapper(status: Status,argStr: list):
@@ -72,10 +76,7 @@ def DeleteHistory(account: AC, recipient: AC) -> bool:
     """
     return False
 
-def InitChat_Wrapper(status: Status,argStr: list):
-    print("init chat::")
-    print(argStr)
-    return status, None
+
 
 def InitChat(account: AC, recipientLabel: str, IP: str):
     """
@@ -84,6 +85,23 @@ def InitChat(account: AC, recipientLabel: str, IP: str):
     Once connection successful create file for this chat and add recipient public key to first line
     """
 
+    recipientAccount = AC.NoneAccount()
+
+    newChat = CH(account, recipientAccount)
+
+    newChat.sendIP = IP
+    newChat.InitConnection()
+
+    return True
+    
+def InitChat_Wrapper(status: Status,argStr: list):
+    print("init chat::")
+    print(argStr)
+
+    if(InitChat(AC.NoneAccount(), "", "localhost")):
+        status.chat.active = True
+    
+    return status, None
 
 def ParseCommand(cmdStr: str):
 
@@ -120,12 +138,12 @@ def ParseCommand(cmdStr: str):
 def NoCommand(status, cmdArgs):
     return status, None
 
-def InputLoop():
+def InputLoop(status: Status):
     """Take input and call the different commands"""
 
     commands = [NoCommand, Login_Wrapper, CreateAccount_Wrapper, DeleteAccount_Wrapper, InitChat_Wrapper, DeleteHistory_Wrapper, Exit_Wrapper, Help_Wrapper]
 
-    status = Status(CH.NoneChat(), AC.NoneAccount())
+
     
     # Input loop
     while(True):
@@ -135,6 +153,9 @@ def InputLoop():
             chatStr = input(status.account.label)
             ## send input to the chat!
 
+            print("sending: ", chatStr)
+            #status.chat.chatSocket.send(chatStr.encode())
+            
         else:
             commandStr = input("Please type a command then press enter. For help enter 'h'. > ")
 
@@ -154,11 +175,60 @@ def InputLoop():
 
             status, res = commands[cmdIndex](status, cmdArgs)
         
-        
+
+
+def RecvLoop(status: Status, listenSocket: Socket.socket):
+
+    connection = None
     
+    while True:
+        try:
+            if(connection is None):
+                print("listening")
+                connection, addr = listenSocket.accept()
+                print("done")
+            else:
+                message = connection.recv(2048)
+
+                print(message.decode())
+
+                if(message):
+                    # if we are currently chatting
+                    if(status.chat.active):
+                        status.chat.Receive()
+
+                        
+                        # otherwise this is a new connection!
+                    else:
+                        print("new connection request!")
+                else:
+                    print("message empty :(")
+
+
+        except:
+            continue
+    return
+
+def StartRecv(status: Status):
+    listenSocket = Socket.socket()
+    
+    port=12346
+
+    recvIP = "127.0.0.1"
+    
+    listenSocket.bind((recvIP, port))
+    listenSocket.listen(1)
+
+    RecvLoop(status, listenSocket)
+
+    #t = threading.Thread(target = RecvLoop, args=(status, listenSocket))
+    #t.start()
+
 
 def main():
-    InputLoop()
+    status = Status(CH.NoneChat(), AC.NoneAccount())
+    StartRecv(status)
+    InputLoop(status)
     return
 
 if __name__ == "__main__":
