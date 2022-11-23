@@ -17,7 +17,7 @@ class Account:
         """
 
         #if the account does not have a folder (i.i. does not yet exist) make the folder and files
-        if os.path.isdir('./Accounts/' + self.label) == False: 
+        #if os.path.isdir('./Accounts/' + self.label) == False: 
         #TODO finish this function
 
         return
@@ -26,23 +26,25 @@ class Account:
     def NoneAccount():
         ret = Account("", "")
         ret.active = False
-        return Account("", "")
+        return ret
 
     @staticmethod
-    def GetFromLabel(label: str):
+    def GetFromLabel(label: str, privKey: str):
         """
         Try and find previously created account with the given label, throw exception if not found, return account if found
         """
-        if os.path.isdir('./Accounts/' + label) == True: 
-            fp = open("./Accounts/" + label, "r")
-            attributes = fp.readlines()
-            pubKey = attributes[1].strip()
-            IP = attributes[2].strip()
+        # if os.path.isdir('./Accounts/' + label) == True or True: 
+        #     fp = open("./Accounts/" + label, "r")
+        #     attributes = fp.readlines()
+        #     pubKey = attributes[1].strip()
+        #     IP = attributes[2].strip()
 
-            return Account(label, pubKey, IP)
 
-        else:
-            raise FileNotFoundError("AccountNotFound in GetFromLabel") 
+        return Account(label, "pubKey", "localhost")
+
+        # else:
+            
+        #     raise FileNotFoundError("AccountNotFound in GetFromLabel") 
 
 
 

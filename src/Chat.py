@@ -20,7 +20,9 @@ class Chat:
     active: bool = False
     chatSocket: Socket.socket = Socket.socket()
     listenSocket: Socket.socket = Socket.socket()
-    
+
+    sendPort: int = field(init=False)
+    recvPort: int = field(init=False)
 
     def __post_init__(self):
         """
@@ -43,13 +45,17 @@ class Chat:
          - Perform some form of key exchange (https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange) for example.
         Return once connection is established, identify verified, and keys exchanged
         """
+        try:
+            self.chatSocket.connect((self.sendIP, self.sendPort))
 
-        port=12345
+            print("Chat connection complete")
+            self.active = True
 
-        self.chatSocket.connect((self.sendIP, port))
+            self.chatSocket.send(("port:"+str(self.recvPort)).encode())
 
-        self.chatSocket.send("some text!".encode())        
-        
+        except ConnectionRefusedError as e:
+            print("Connection refused!")
+
         return True
 
     def Send(self, message: Message):
@@ -57,10 +63,11 @@ class Chat:
         Encrypt and send the message.
         Format message to have the message hash and timestamp
         """
-        self.chatSocket.send(message.body.encode()) 
+        self.chatSocket.send(message.body.encode())
+        self.messages.append(message)
         return
 
-    def Receive(self) -> Message:
+    def Receive(self, raw: str) -> Message:
         """
         Check for recieved messages and decrpyt them.
         Also decode them, verify message integrity using message hash and timestamp
