@@ -5,7 +5,7 @@ import inspect #for stack inspection for easier debugging
 from Encrypt import *
 
 
-_root = "./accounts/"
+_root = "./Accounts/"
 
 @dataclass
 class Account:
@@ -25,7 +25,7 @@ class Account:
             raise FileExistsError("Account with that label already exists")
 
         else:
-            os.mkdir("./" + self.label) #make account folder and files
+            os.mkdir(_root + self.label) #make account folder and files
             with open(_root + self.label + "/info.txt", 'w') as fp:
                 data = Encrypt(self.label + "\n" + self.publicKey + "\n" + self.IP, self.privateKey)
                 fp.write(data)
@@ -46,7 +46,7 @@ class Account:
         """
         Account.AssertLocalAccount(self.privateKey)
         
-        fp = open("./" + self.label + "/contacts.txt", "r")
+        fp = open(_root + self.label + "/contacts.txt", "r")
         fileData = Decrypt(fp.read(), self.privateKey)
         contacts = {}
 
@@ -66,7 +66,7 @@ class Account:
 
         try:
             id = dictionary[contactLabel]
-            filePath = "./" + self.label + "/" + id + "/info.txt"
+            filePath = _root + self.label + "/" + id + "/info.txt"
 
             fp = open(filePath, "r")
             fileContents = fp.read()
@@ -89,7 +89,7 @@ class Account:
         Account.AssertLocalAccount(self.privateKey)
 
         id = dictionary[contactLabel]
-        directoryPath = "./" + self.label + "/" + id + "/"
+        directoryPath = _root + self.label + "/" + id + "/"
 
         open(directoryPath + "history.txt", "w").close() #this clears the history.txt file
         
@@ -103,7 +103,7 @@ class Account:
         """
         Account.AssertLocalAccount(self.privateKey)
         
-        shutil.rmtree("./" + self.label) #deletes all of the local account's files
+        shutil.rmtree(_root + self.label) #deletes all of the local account's files
 
         return
     
@@ -126,16 +126,16 @@ class Account:
             dictionary[contactLabel] = str(num)
 
             #creates the directory for the contact with the id as the name
-            os.mkdir("./" + self.label + "/" + str(num))
+            os.mkdir(_root + self.label + "/" + str(num))
 
             #creates the info file and writes the contact information in
-            fp = open("./" + self.label + "/" + str(num) + "/info.txt", "w")
+            fp = open(_root + self.label + "/" + str(num) + "/info.txt", "w")
             info = Encrypt(contactLabel + "\n" + publicKey + "\n" + IP, self.privateKey)
             fp.write(info)
             fp.close()
 
             #creates the chat history file
-            open("./" + self.label + "/" + str(num) + "/history.txt", "w").close()
+            open(_root + self.label + "/" + str(num) + "/history.txt", "w").close()
 
             return Account(contactLabel, publicKey, IP)
         
@@ -150,7 +150,7 @@ class Account:
         Account.AssertLocalAccount(self.privateKey)
         
         id = dictionary[contactLabel]
-        directoryPath = "./" + self.label + "/" + id + "/"
+        directoryPath = _root + self.label + "/" + id + "/"
 
         del dictionary[contactLabel] #deletes contact's directory entry
         shutil.rmtree(directoryPath) #deletes contact's associated file and contents
@@ -194,8 +194,6 @@ class Account:
             #the frame code below retrieves the name of the caller method, this is to make debugging easier
             raise Exception("method " + inspect.getouterframes( inspect.currentframe() )[1][3] + "() must be called on the local account object") 
         return
-
-
 
 
 # Account_Folder
