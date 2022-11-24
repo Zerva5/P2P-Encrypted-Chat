@@ -4,7 +4,7 @@ import datetime
 from Account import Account as AC
 from Message import Message as MSG
 from Chat import Chat as CH
-from Encrypt import *
+import Encrypt
 from collections import namedtuple
 import threading
 import socket as Socket
@@ -33,8 +33,7 @@ def Login(label: str, privateKey: str) -> AC:
     Takes login info and returns true if login was successful.
     If login was successful then return the logged in account"
     """
-
-    retAccount = AC.GetFromLabel(label, privateKey)
+    retAccount = AC.GetLocalAccount(label, privateKey)
     
     return retAccount
 
@@ -46,21 +45,19 @@ def Login_Wrapper(status: Status,argStr: list):
     try:
         newAccount = Login(argStr[0], argStr[1])
         status = Status(status.chat, newAccount)
+
+        print("Logged in as", status.account.label)
     except IndexError as e:
         print(str(e))
+    except FileNotFoundError as e:
+        print("Account not found!")
     except Exception as e:
         print("Some other login error!", str(e))
 
-    print("Logged in as", status.account.label)
-
-
 
     return status, None
 
-def CreateAccount_Wrapper(status: Status,argStr: list):
-    print("Create account::")
-    print(argStr)
-    return status, None
+
 
 def CreateAccount(label: str) -> AC:
     """
@@ -69,7 +66,28 @@ def CreateAccount(label: str) -> AC:
     creates file that store public key
     """
 
-    return AC.NoneAccount()
+    # Generate keypair for the account
+    public,private = Encrypt.GeneratePair()
+
+    retAccount = AC(label, public)
+
+    retAccount.privateKey = private
+
+    retAccount.InitalizeLocalAccount()
+
+    return retAccount
+
+def CreateAccount_Wrapper(status: Status,argStr: list):
+    print("Create account::")
+    print(argStr)
+
+    try:
+        tempAcc = CreateAccount(argStr[0])
+    except FileExistsError as e:
+        print(str(e))
+    
+    return status, None
+
 
 def DeleteAccount_Wrapper(status: Status,argStr: list):
     print("Delete account::")
@@ -200,7 +218,7 @@ def InputLoop(status: Status):
     commands = [NoCommand, Login_Wrapper, CreateAccount_Wrapper, DeleteAccount_Wrapper, InitChat_Wrapper, DeleteHistory_Wrapper, Exit_Wrapper, Help_Wrapper, Logout_Wrapper]
 
 
-    print("Please type a command then press enter. For help enter 'h'.")
+    print("Please type a command then press enter. For help enter 'help'.")
     
     # Input loop
     while(True):

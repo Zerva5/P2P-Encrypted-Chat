@@ -7,7 +7,7 @@ def GeneratePair() -> tuple[str, str]:
     return public, private
     """
     
-    return "",""
+    return "pubkey","privkey"
 
 def Encrypt(msg: bytes, key: str) -> bytes:
     """
