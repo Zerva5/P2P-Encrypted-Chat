@@ -32,11 +32,14 @@ class Chat:
         """
         return
 
+    
+
     @staticmethod
     def NoneChat():
         return Chat(Account.NoneAccount(), Account.NoneAccount())
 
-
+    
+    
     def InitConnection(self) -> bool:
         """
         Connect to IP

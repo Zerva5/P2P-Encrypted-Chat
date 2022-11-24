@@ -5,12 +5,15 @@ import inspect #for stack inspection for easier debugging
 from Encrypt import *
 
 
+_root = "./accounts/"
+
 @dataclass
 class Account:
     label: str
     publicKey: str
     IP: str = ""
-    privateKey: str = None
+    privateKey: str = ""
+    active: bool = False
     
     def InitalizeLocalAccount(self): #for initializing 
         """
@@ -18,20 +21,24 @@ class Account:
         """
         Account.AssertLocalAccount(self.privateKey)
         
-        if os.path.isdir('./' + self.label) == True: #if account with that label already exists, throw exception
-            raise Exception("Account with that label already exists")
+        if os.path.isdir(_root + self.label) == True: #if account with that label already exists, throw exception
+            raise FileExistsError("Account with that label already exists")
 
         else:
             os.mkdir("./" + self.label) #make account folder and files
-            fp = open("./" + self.label + "/info.txt", "w")
-            data = Encrypt(self.label + "\n" + self.publicKey + "\n" + self.IP, self.privateKey)
-            fp.write(data)
-            fp.close()
-            open("./" + self.label + "/contacts.txt", "w").close()
+            with open(_root + self.label + "/info.txt", 'w') as fp:
+                data = Encrypt(self.label + "\n" + self.publicKey + "\n" + self.IP, self.privateKey)
+                fp.write(data)
+
+            with open(_root + self.label + "/contacts.txt", 'w') as fp:
+                pass
 
 
             return
 
+    def __eq__(self, other):
+        return self.label == other.label and self.publicKey == other.publicKey
+        
 
     def GetContacts(self): 
         """
@@ -154,7 +161,7 @@ class Account:
     @staticmethod
     def NoneAccount(): #For making an object equivalent to None
         ret = Account("", "")
-        ret.active = False
+        #ret.active = False
         return ret
 
 
@@ -163,14 +170,19 @@ class Account:
         """
         gets local account info, returns account object
         """
-        fp = open("./" + label + "/info.txt", "r")
+        fp = open(_root + label + "/info.txt", "r")
+            
         fileContents = fp.read()
         info = Decrypt(fileContents, privateKey)
         info = info.splitlines()
 
-        publicKey = info[1]
-        IP = info[2]
-        return Account(label, publicKey, IP, privateKey)
+        if info[0] == label:
+            publicKey = info[1]
+            IP = info[2]
+            return Account(label, publicKey, IP, privateKey)
+
+        else:
+            raise Exception("Incorrect Login Credentials")
 
 
     @staticmethod
@@ -178,7 +190,7 @@ class Account:
         """
         Asserts that the account is the local account and not a chat account
         """
-        if privateKey == None: #if no privateKey then the object is a chat account
+        if (not privateKey): #if no privateKey then the object is a chat account
             #the frame code below retrieves the name of the caller method, this is to make debugging easier
             raise Exception("method " + inspect.getouterframes( inspect.currentframe() )[1][3] + "() must be called on the local account object") 
         return
