@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 import datetime
 import os, shutil #for file manipulation
 import inspect #for stack inspection for easier debugging
+from Encrypt import *
 
 
 @dataclass
@@ -22,8 +23,13 @@ class Account:
 
         else:
             os.mkdir("./" + self.label) #make account folder and files
-            open("./" + self.label + "/info.txt").close()
-            open("./" + self.label + "/history.txt").close()
+            fp = open("./" + self.label + "/info.txt", "w")
+            data = Encrypt(self.label + "\n" + self.publicKey + "\n" + self.IP, self.privateKey)
+            fp.write(data)
+            fp.close()
+            open("./" + self.label + "/contacts.txt", "w").close()
+
+
             return
 
 
@@ -33,14 +39,11 @@ class Account:
         """
         Account.AssertLocalAccount(self.privateKey)
         
-        fp = open("./" + self.label + "/info.txt")
-        encryptedContents = fp.read()
-        #TODO decrypt the above into the fileData variable
-
-        fileData = "label1-0\nlabel2-4\nlabel3-2\nlabel4-6\nlabel5-5\nlabel6-9" #temporary theroretical output for testing
+        fp = open("./" + self.label + "/contacts.txt", "r")
+        fileData = Decrypt(fp.read(), self.privateKey)
         contacts = {}
 
-        for association in fileData.split(): #this loop adds all of the label-file_id associations to the contacts dictionary
+        for association in fileData.split(): #this loop adds all of the label<->file_id associations to the contacts dictionary
             kv_Pair = association.split("-")
             contacts[kv_Pair[0]] = kv_Pair[1]
 
@@ -58,12 +61,13 @@ class Account:
             id = dictionary[contactLabel]
             filePath = "./" + self.label + "/" + id + "/info.txt"
 
-            fp = open(filePath)
+            fp = open(filePath, "r")
             fileContents = fp.read()
-            #TODO decrypt the info from the file and store it in the below variables
+            info = Decrypt(fileContents, self.privateKey)
+            info = info.splitlines()
 
-            publicKey = ""
-            IP = ""
+            publicKey = info[1]
+            IP = info[2]
             return Account(contactLabel, publicKey, IP)
 
         except KeyError:
@@ -119,15 +123,12 @@ class Account:
 
             #creates the info file and writes the contact information in
             fp = open("./" + self.label + "/" + str(num) + "/info.txt", "w")
-            string = contactLabel + "\n" + publicKey + "\n" + IP
-            #TODO encrypt the above string
-            encryptedString = ""
-            fp.write(encryptedString)
+            info = Encrypt(contactLabel + "\n" + publicKey + "\n" + IP, self.privateKey)
+            fp.write(info)
+            fp.close()
 
             #creates the chat history file
-            fp = open("./" + self.label + "/" + str(num) + "/history.txt", "w")
-            
-            fp.close()
+            open("./" + self.label + "/" + str(num) + "/history.txt", "w").close()
 
             return Account(contactLabel, publicKey, IP)
         
@@ -164,10 +165,11 @@ class Account:
         """
         fp = open("./" + label + "/info.txt", "r")
         fileContents = fp.read()
-        #TODO decrypt the info from the file and store it in the below variables
+        info = Decrypt(fileContents, privateKey)
+        info = info.splitlines()
 
-        publicKey = ""
-        IP = ""
+        publicKey = info[1]
+        IP = info[2]
         return Account(label, publicKey, IP, privateKey)
 
 
@@ -180,8 +182,6 @@ class Account:
             #the frame code below retrieves the name of the caller method, this is to make debugging easier
             raise Exception("method " + inspect.getouterframes( inspect.currentframe() )[1][3] + "() must be called on the local account object") 
         return
-
-
 
 
 
