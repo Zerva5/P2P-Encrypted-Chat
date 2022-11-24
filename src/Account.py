@@ -13,11 +13,18 @@ class Account:
     
     def InitalizeLocalAccount(self): #for initializing 
         """
-        Check if this account exists and if not create all the associated folders and files
+        Check if this account exists and if not create the associeated folder and files
         """
         Account.AssertLocalAccount(self.privateKey)
-        #TODO finish function
-        return
+        
+        if os.path.isdir('./' + self.label) == True: #if account with that label already exists, throw exception
+            raise Exception("Account with that label already exists")
+
+        else:
+            os.mkdir("./" + self.label) #make account folder and files
+            open("./" + self.label + "/info.txt").close()
+            open("./" + self.label + "/history.txt").close()
+            return
 
 
     def GetContacts(self): 
