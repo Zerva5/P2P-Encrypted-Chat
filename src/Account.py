@@ -14,6 +14,16 @@ class Account:
     IP: str = ""
     privateKey: str = ""
     active: bool = False
+
+    @property
+    def contacts(self):
+        try:
+            return self._contacts
+        except AttributeError:
+            self._contacts = self.GetContacts()
+            return self.contacts
+        
+        
     
     def InitalizeLocalAccount(self): #for initializing 
         """
@@ -49,6 +59,7 @@ class Account:
         fp = open(_root + self.label + "/contacts.txt", "r")
         fileData = Decrypt(fp.read(), self.privateKey)
         contacts = {}
+        contacts[self.label] = -1
 
         for association in fileData.split(): #this loop adds all of the label<->file_id associations to the contacts dictionary
             kv_Pair = association.split("-")
@@ -58,14 +69,14 @@ class Account:
 
 
 
-    def GetChatAccount(self, contactLabel: str, dictionary): 
+    def GetChatAccount(self, contactLabel: str): 
         """
         #Returns a new chat account object thats associated with the label. should catch if the account doesn't exist and raise an exception
         """
         Account.AssertLocalAccount(self.privateKey)
 
         try:
-            id = dictionary[contactLabel]
+            id = self.contacts[contactLabel]
             filePath = _root + self.label + "/" + id + "/info.txt"
 
             fp = open(filePath, "r")
@@ -82,13 +93,13 @@ class Account:
         
 
 
-    def DeleteHistory(self, contactLabel: str, dictionary):
+    def DeleteHistory(self, contactLabel: str):
         """
         Delete message history to/from a given label
         """
         Account.AssertLocalAccount(self.privateKey)
 
-        id = dictionary[contactLabel]
+        id = self.contacts[contactLabel]
         directoryPath = _root + self.label + "/" + id + "/"
 
         open(directoryPath + "history.txt", "w").close() #this clears the history.txt file
@@ -108,14 +119,14 @@ class Account:
         return
     
 
-    def NewContact(self, contactLabel: str, publicKey: str, IP: str, dictionary): 
+    def NewContact(self, contactLabel: str, publicKey: str, IP: str): 
         """
         Generates folder and files for account, Adds label to contact dictionary, Returns account object with details, Raises exception if label already exists
         """
 
         Account.AssertLocalAccount(self.privateKey)
 
-        if contactLabel not in dictionary:
+        if contactLabel not in self.contacts:
 
             #get a folder id that does not already exist
             num = 0
@@ -123,7 +134,7 @@ class Account:
                 num += 1
 
             #associates the contact's label with a number id in our contact dictionary
-            dictionary[contactLabel] = str(num)
+            self.contacts[contactLabel] = str(num)
 
             #creates the directory for the contact with the id as the name
             os.mkdir(_root + self.label + "/" + str(num))
@@ -143,16 +154,16 @@ class Account:
             raise Exception("A contact with that name already exists")
 
 
-    def DeleteContact(self, contactLabel, dictionary):
+    def DeleteContact(self, contactLabel):
         """
         Delete the contact (associated folder, files, and dictionary entry)
         """
         Account.AssertLocalAccount(self.privateKey)
         
-        id = dictionary[contactLabel]
+        id = self.contacts[contactLabel]
         directoryPath = _root + self.label + "/" + id + "/"
 
-        del dictionary[contactLabel] #deletes contact's directory entry
+        del self.contacts[contactLabel] #deletes contact's directory entry
         shutil.rmtree(directoryPath) #deletes contact's associated file and contents
         
         return
@@ -176,13 +187,14 @@ class Account:
         info = Decrypt(fileContents, privateKey)
         info = info.splitlines()
 
-        if info[0] == label:
+        if info[0] == label: # if the decryption was successful
             publicKey = info[1]
-            IP = info[2]
-            return Account(label, publicKey, IP, privateKey)
-
+            #IP = info[2]
+            return Account(label, publicKey, privateKey=privateKey)
+        
         else:
             raise Exception("Incorrect Login Credentials")
+            
 
 
     @staticmethod
@@ -190,9 +202,11 @@ class Account:
         """
         Asserts that the account is the local account and not a chat account
         """
+
+        
         if (not privateKey): #if no privateKey then the object is a chat account
             #the frame code below retrieves the name of the caller method, this is to make debugging easier
-            raise Exception("method " + inspect.getouterframes( inspect.currentframe() )[1][3] + "() must be called on the local account object") 
+            raise Exception("method " + inspect.getouterframes( inspect.currentframe() )[1][3] + "() must be called on the local account object", "AKA this thing doesn't have the private key set") 
         return
 
 

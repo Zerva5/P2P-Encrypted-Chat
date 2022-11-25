@@ -33,7 +33,10 @@ def Login(label: str, privateKey: str) -> AC:
     Takes login info and returns true if login was successful.
     If login was successful then return the logged in account"
     """
+    print("here")
     retAccount = AC.GetLocalAccount(label, privateKey)
+    retAccount.active = True
+    retAccount.privateKey = privateKey
     
     return retAccount
 
@@ -47,6 +50,7 @@ def Login_Wrapper(status: Status,argStr: list):
         status = Status(status.chat, newAccount)
 
         print("Logged in as", status.account.label)
+        print("privKey: ", status.account.privateKey)
     except IndexError as e:
         print(str(e))
     except FileNotFoundError as e:
@@ -72,6 +76,7 @@ def CreateAccount(label: str) -> AC:
     retAccount = AC(label, public)
 
     retAccount.privateKey = private
+    retAccount.publicKey = public
 
     retAccount.InitalizeLocalAccount()
 
@@ -83,34 +88,63 @@ def CreateAccount_Wrapper(status: Status,argStr: list):
 
     try:
         tempAcc = CreateAccount(argStr[0])
+
+        print("Public key: " + tempAcc.publicKey)
+        print("Private key: " + tempAcc.privateKey)
+        print("DO NOT FORGET THIS")
+        
     except FileExistsError as e:
         print(str(e))
     
     return status, None
 
 
-def DeleteAccount_Wrapper(status: Status,argStr: list):
-    print("Delete account::")
-    print(argStr)
-    return status, None
+
 
 def DeleteAccount(account: AC) -> bool:
     """
     Take a label and delete the associated account. Account must be the "currently logged in account" for operation to be successful
     """
 
-    return False
+    account.DeleteLocalAccount()
 
-def DeleteHistory_Wrapper(status: Status, argStr: list):
-    print("Delete history::")
+    return True
+
+def DeleteAccount_Wrapper(status: Status,argStr: list):
+    print("Delete account::")
     print(argStr)
+
+    
+    if(status.account.active and status.account != AC.NoneAccount()):
+        
+        DeleteAccount(status.account)
+    else:
+        print("Please login to the account you wish to delete!")
+
+    status = Status(status.chat, AC.NoneAccount())
+    
     return status, None
+
 
 def DeleteHistory(account: AC, recipient: AC) -> bool:
     """
     Delete message history with a particular user. Must be logged in to the account in the chat to delete message history
     """
-    return False
+
+    account.DeleteHistory(recipient.label)
+    
+    return True
+
+def DeleteHistory_Wrapper(status: Status, argStr: list):
+    print("Delete history::")
+    print(argStr)
+
+    if(DeleteHistory(status.account, argStr[0])):
+        print("History with contact", argStr[0], "has been deleted")
+    else:
+        print("SOME ERROR DELETING THE HISTORY")
+    
+    return status, None
 
 
 
@@ -121,14 +155,17 @@ def InitChat(account: AC, recipientLabel: str, IP: str, port=PORT):
     Once connection successful create file for this chat and add recipient public key to first line
     """
     recipientAccount = AC.NoneAccount()
+    recipientAccount.label = recipientLabel
 
-    #try:
-        #recipientAccount = status.Account.GetContact(recipientLabel)
-       # recipientAccount = AC("Dancer", "public key", IP)
-    #except:
-    pubKey = input("This person isn't a contact yet, please enter their public key: ")
-    recipientAccount = AC(recipientLabel, pubKey, IP)
-
+    try:
+        print(account.privateKey)
+        recipientAccount = account.GetChatAccount(recipientLabel)
+    except KeyError:
+        pubKey = input("This person isn't a contact yet, please enter their public key: ")
+        recipientAccount = AC(recipientLabel, pubKey, IP)
+        account.NewContact(recipientLabel, pubKey, IP)
+            
+    
     newChat = CH(account, recipientAccount)
     newChat.sendIP = recipientAccount.IP
     newChat.sendPort = PORT
@@ -149,7 +186,7 @@ def InitChat_Wrapper(status: Status,argStr: list):
         return status,None
 
     try:
-        newChat = InitChat(AC.NoneAccount(), argStr[0], argStr[1], status.chat.recvPort)
+        newChat = InitChat(status.account, argStr[0], argStr[1], status.chat.recvPort)
     except ConnectionRefusedError:
         print("Connection refused!")
         return status, None

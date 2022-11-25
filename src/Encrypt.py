@@ -9,14 +9,14 @@ def GeneratePair() -> tuple[str, str]:
     
     return "pubkey","privkey"
 
-def Encrypt(msg: bytes, key: str) -> bytes:
+def Encrypt(msg: str, key: str) -> str:
     """
     Encrypt the given message with the given key, return encrypted bytes
     """
 
     return msg
 
-def Decrypt(msg: bytes, key: str) -> bytes:
+def Decrypt(msg: str, key: str) -> str:
     """
     decrypt the given message with the given key, return decrypted bytes
     """
