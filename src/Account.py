@@ -25,9 +25,9 @@ class Account:
         
         
     
-    def InitalizeLocalAccount(self): #for initializing 
+    def InitializeLocalAccount(self): #for initializing 
         """
-        Check if this account exists and if not create the associeated folder and files
+        Check if this account exists and if not create the associated folder and files
         """
         Account.AssertLocalAccount(self.privateKey)
         
@@ -59,13 +59,32 @@ class Account:
         fp = open(_root + self.label + "/contacts.txt", "r")
         fileData = Decrypt(fp.read(), self.privateKey)
         contacts = {}
-        contacts[self.label] = -1
+        contacts[self.label] = "-1"
 
         for association in fileData.split(): #this loop adds all of the label<->file_id associations to the contacts dictionary
             kv_Pair = association.split("-")
             contacts[kv_Pair[0]] = kv_Pair[1]
 
         return contacts
+
+
+    def StoreContacts(self):
+        """
+        Stores all of the contacts in the local account's contact dictionary
+        """
+        Account.AssertLocalAccount(self.privateKey)
+        fp = open(_root + self.label + "/contacts.txt", "w")
+        string = ""
+
+        #adds all dictionary entries into a string to be encrypted
+        for k,v in self.contacts.items():
+            string += k + "-" + v + "\n"
+
+        fp.write(Encrypt(string, self.privateKey))
+        fp.close()
+
+        return
+
 
 
 
@@ -91,6 +110,22 @@ class Account:
         except KeyError:
             raise KeyError("GetChatAccount called with label to nonexistent account")
         
+
+    def StoreMessages(self, contactLabel: str, message: str):
+        """
+        Appends a message plus a \n onto the history.txt file of the given contactLabel
+        """
+        Account.AssertLocalAccount(self.privateKey)
+
+        id = self.contacts[contactLabel]
+        historyPath = _root + self.label + "/" + id + "/history.txt"
+
+        fp = open(historyPath, "a") 
+        fp.write(message + "\n")
+        fp.close()
+        
+        return
+
 
 
     def DeleteHistory(self, contactLabel: str):
@@ -130,14 +165,14 @@ class Account:
 
             #get a folder id that does not already exist
             num = 0
-            while os.path.isdir('./' + str(num)) == True: #checks to see if a folder of that id already exists, if so incremement the id
+            while os.path.isdir(_root + self.label + "/" + str(num)) == True: #checks to see if a folder of that id already exists, if so incremement the id
                 num += 1
-
-            #associates the contact's label with a number id in our contact dictionary
-            self.contacts[contactLabel] = str(num)
 
             #creates the directory for the contact with the id as the name
             os.mkdir(_root + self.label + "/" + str(num))
+
+            #associates the contact's label with a number id in our contact dictionary
+            self.contacts[contactLabel] = str(num)
 
             #creates the info file and writes the contact information in
             fp = open(_root + self.label + "/" + str(num) + "/info.txt", "w")
@@ -208,6 +243,17 @@ class Account:
             #the frame code below retrieves the name of the caller method, this is to make debugging easier
             raise Exception("method " + inspect.getouterframes( inspect.currentframe() )[1][3] + "() must be called on the local account object", "AKA this thing doesn't have the private key set") 
         return
+
+
+
+
+# bob = Account("bob", "1", "1", "1234")
+# bob.InitializeLocalAccount()
+# bob.NewContact("tracy", "1", "2")
+# bob.NewContact("steve", "1", "2")
+# bob.NewContact("jonees", "1", "2")
+# bob.StoreContacts()
+# bob.StoreMessages("tracy", "hey")
 
 
 # Account_Folder
