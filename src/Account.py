@@ -34,17 +34,19 @@ class Account:
         if os.path.isdir(_root + self.label) == True: #if account with that label already exists, throw exception
             raise FileExistsError("Account with that label already exists")
 
-        else:
-            os.mkdir(_root + self.label) #make account folder and files
-            with open(_root + self.label + "/info.txt", 'w') as fp:
-                data = Encrypt(self.label + "\n" + self.publicKey + "\n" + self.IP, self.privateKey)
-                fp.write(data)
+        if os.path.isdir(_root) == False: # Accounts folder is not made yet
+            os.mkdir(_root)
 
-            with open(_root + self.label + "/contacts.txt", 'w') as fp:
-                pass
+        os.mkdir(_root + self.label) #make account folder and files
+        with open(_root + self.label + "/info.txt", 'w') as fp:
+            data = Encrypt(self.label + "\n" + self.publicKey + "\n" + self.IP, self.privateKey)
+            fp.write(data)
+
+        with open(_root + self.label + "/contacts.txt", 'w') as fp:
+            pass
 
 
-            return
+        return
 
     def __eq__(self, other):
         return self.label == other.label and self.publicKey == other.publicKey
