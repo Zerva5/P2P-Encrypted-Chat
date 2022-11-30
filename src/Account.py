@@ -5,7 +5,7 @@ import inspect #for stack inspection for easier debugging
 from Encrypt import *
 
 
-_root = "./Accounts/"
+_root = os.getcwd() + "/Accounts/"
 
 @dataclass
 class Account:

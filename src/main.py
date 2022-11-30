@@ -78,7 +78,7 @@ def CreateAccount(label: str) -> AC:
     retAccount.privateKey = private
     retAccount.publicKey = public
 
-    retAccount.InitalizeLocalAccount()
+    retAccount.InitializeLocalAccount()
 
     return retAccount
 
