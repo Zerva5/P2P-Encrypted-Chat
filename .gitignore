@@ -6,3 +6,6 @@
 
 src/__pycache__
 src/Accounts/*
+venv
+*.txt
+.vscode
