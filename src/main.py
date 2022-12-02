@@ -325,8 +325,6 @@ def RecvLoop(status: Status, listenSocket: Socket.socket):
                     print("message empty :(")
                     status.chat.active = False
                     connection = None
-
-
         except:
             continue
     return
@@ -349,6 +347,7 @@ def StartRecv(status: Status):
     #RecvLoop(status, listenSocket)
 
     t = threading.Thread(target = RecvLoop, args=(status, listenSocket))
+    t.daemon = True
     t.start()
 
     status.chat.recvPort = port
