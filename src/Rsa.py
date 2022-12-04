@@ -64,10 +64,7 @@ def prime(i: int) -> bool:
     # no factor 
     # number is prime
     return True
-
-
-
-    
+ 
 
 # find greatest common divisor, use Euclidean algo
 def find_gcd(a, b):
@@ -114,12 +111,3 @@ def get_prime(ksize: int):
     while not prime(i):
         i = random.getrandbits(bit_length(ksize))
     return i
-
-
-
-def main():
-    
-    print(GeneratePair(16))
-
-if __name__ == "__main__":
-    main()
