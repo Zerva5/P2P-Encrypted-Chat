@@ -27,6 +27,7 @@ def GeneratePair(kSize: int):
     p = get_prime(kSize)
     q = get_prime(kSize)
     
+    
     n = p*q
 
     totient = (p-1) * (q-1)
@@ -37,7 +38,7 @@ def GeneratePair(kSize: int):
     public_key = get_prime(totient)
     while find_gcd(public_key, totient) != 1:
         public_key = get_prime(totient)
-    
+
     private_key = extended_ecleudian_algo(public_key, totient)[0] % totient
 
     return((public_key, n), (private_key, n))
@@ -70,21 +71,30 @@ def prime(i: int) -> bool:
 
 # find greatest common divisor, use Euclidean algo
 def find_gcd(a, b):
-    # base case, b = 0
+    
+    if a == 0:
+        return b
+    if b == 0:
+        return a
+    # euclidean algo
     while b != 0:
-        a = b
+        t = b
         b = a % b
+        a = t
     return a
 
 
 # returns the  bezout coefficents x and y, where ax + by = d
 def extended_ecleudian_algo(a,b):
     # algo from pseudo code https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
-    old_r, r = a, b
-    old_s, s = 1, 0
+    old_r, r = 1, 0
+    old_s, s = 0, 1
 
-    while r != 0:
-        quotient = a // b 
+    while b != 0:
+
+        # get the quotient and remainder
+        quotient, remainder = divmod(a, b)
+        a, b = b, remainder
         old_r, r = r, old_r - quotient * r
         old_s, s = s, old_s - quotient * s
     
@@ -101,11 +111,8 @@ def get_prime(ksize: int):
     # getrandbits -> generate number within max number of bits used to represent key 
     # finding the floor of the key size with 2 gives us how many bits are needed to represent the key
     i = random.getrandbits(bit_length(ksize))
-    k = 0
-    while not prime(i) and k < 10:
-        print(i, bit_length(i), prime(i))
+    while not prime(i):
         i = random.getrandbits(bit_length(ksize))
-        k += 1
     return i
 
 
