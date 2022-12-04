@@ -4,7 +4,7 @@ import datetime
 from Account import Account as AC
 from Message import Message as MSG
 from Chat import Chat as CH
-import Encrypt
+import Rsa
 from collections import namedtuple
 import threading
 import socket as Socket
@@ -84,7 +84,7 @@ def CreateAccount(label: str) -> AC:
     """
 
     # Generate keypair for the account
-    public,private = Encrypt.GeneratePair()
+    public,private = Rsa.GeneratePair()
 
     retAccount = AC(label, public)
 
