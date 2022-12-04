@@ -84,7 +84,7 @@ def CreateAccount(label: str) -> AC:
     """
 
     # Generate keypair for the account
-    public,private = Rsa.GeneratePair()
+    public,private = Rsa.GeneratePair(1024)
 
     retAccount = AC(label, public)
 
@@ -440,6 +440,8 @@ def main():
     print("Please type a command then press enter. For help enter 'help'.")
     InputLoop(status)
     return
+
+
 
 if __name__ == "__main__":
     main()
