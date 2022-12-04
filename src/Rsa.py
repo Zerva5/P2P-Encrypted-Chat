@@ -34,13 +34,15 @@ def GeneratePair(kSize: int):
 
     # choose int e s.t. 1 < r < totient(n) and gcd(r, totienT(n)) = 1
     # if gcd = 1 that means they are coprime
-    # keep generating r till they are coprime
+    # keep generating public_key till they are coprime
     public_key = get_prime(totient)
     while find_gcd(public_key, totient) != 1:
         public_key = get_prime(totient)
 
+    # the private key is being calulated by the bézout coefficient x returned by the result of extended_eucledian_algo()=(x,y) and is modulo'd with totient
     private_key = extended_ecleudian_algo(public_key, totient)[0] % totient
 
+    # n is the modulo used for encryption and decryption
     return((public_key, n), (private_key, n))
 
 def bit_length(num):
