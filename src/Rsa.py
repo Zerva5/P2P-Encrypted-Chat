@@ -1,4 +1,5 @@
 import random
+import math
 
 def Encrypt(msg: str, key: str) -> str:
     """
@@ -41,21 +42,25 @@ def GeneratePair(kSize: int):
 
     return((public_key, n), (private_key, n))
 
-
+def bit_length(num):
+    # the -2 is to get rid of 0b in ex: 0b1011
+    return len(bin(num)) - 2
 
 # function that determines if in is prime
 def prime(i: int) -> bool:
-    if i <= 1:
-        return False
     
-    # check from x -> sqrt(i) or x^2 -> i
-    j = 2
-    while j*j <= i:
-        #print("stuck in loop %d <= %d", j*j, i)
-        # i does have factor between x and sqrt(1)
+    # 2 is prime, check if i = 2
+    if i == 2:
+        return True
+    # check if i is even or i is less than 2
+    if i % 2 == 0 or i < 2:
+        return False
+    for j in range(3, int(math.sqrt(i)) + 1, 2):
         if i % j == 0:
+            # factor found
             return False
-        j += 1
+
+    # no factor 
     # number is prime
     return True
 
@@ -95,10 +100,12 @@ def extended_ecleudian_algo(a,b):
 def get_prime(ksize: int):
     # getrandbits -> generate number within max number of bits used to represent key 
     # finding the floor of the key size with 2 gives us how many bits are needed to represent the key
-    i = random.getrandbits(ksize // 2)
-    while not prime(i):
-        i = random.getrandbits(ksize // 2)
-        print(i//2, i)
+    i = random.getrandbits(bit_length(ksize))
+    k = 0
+    while not prime(i) and k < 10:
+        print(i, bit_length(i), prime(i))
+        i = random.getrandbits(bit_length(ksize))
+        k += 1
     return i
 
 
