@@ -84,7 +84,7 @@ def CreateAccount(label: str) -> AC:
     """
 
     # Generate keypair for the account
-    public,private = Rsa.GeneratePair(1024)
+    public,private = Rsa.GeneratePair(2048)
 
     retAccount = AC(label, public)
 

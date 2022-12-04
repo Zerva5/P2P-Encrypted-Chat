@@ -96,13 +96,7 @@ def extended_ecleudian_algo(a,b):
         a, b = b, remainder
         old_r, r = r, old_r - quotient * r
         old_s, s = s, old_s - quotient * s
-    
-    if b != 0:
-        bezout_t = (old_r - old_s * a) // b
-    else:
-        bezout_t = 0
-
-    return (old_s, bezout_t)
+    return (old_r, old_s)
 
 
 # generate random prime number
