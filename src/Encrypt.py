@@ -95,7 +95,8 @@ def splitIntoBlocks(msg):
     return blocks
 
 
-# function converts list of chars, list will always have size 16
+# function converts list of hex chars into list of rows of the matrix. 
+# string will always be len 16
 # function will fail if block size not correct
 def str2matrix(msg):
     assert len(msg) == 16
