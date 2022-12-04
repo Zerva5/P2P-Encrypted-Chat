@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
+import sys
 import datetime
 from Account import Account
 from Message import Message
 import socket as Socket
 #import _thread
 import threading
+import queue
  
 print_lock = threading.Lock()
 
@@ -18,11 +20,17 @@ class Chat:
     sessionKey: str = field(init=False) # Not 100% if its one key or two.
     messages: list[Message] = field(default_factory=list)# list is the same as an array
     active: bool = False
+    awaitingKey: bool = False
     chatSocket: Socket.socket = Socket.socket()
     listenSocket: Socket.socket = Socket.socket()
 
     sendPort: int = field(init=False)
     recvPort: int = field(init=False)
+
+    #sendQueue: queue.Queue = field(init=False)
+    recvQueue: queue.Queue = queue.Queue()
+
+    # states of the chat: inactive, waiting for key exchange, chatting
 
     def __post_init__(self):
         """
@@ -40,7 +48,7 @@ class Chat:
 
     
     
-    def InitConnection(self) -> bool:
+    def InitConnection(self, response=False) -> bool:
         """
         Connect to IP
         Request a chat
@@ -51,10 +59,12 @@ class Chat:
         try:
             self.chatSocket.connect((self.sendIP, self.sendPort))
 
-            print("Chat connection complete")
-            self.active = True
+            if(not response):
+                print("Chat connection complete")
+                self.active = True
 
-            self.chatSocket.send(("port:"+str(self.recvPort)).encode())
+                self.chatSocket.send(("PORT:"+str(self.recvPort)).encode())
+            #self.chatSocket.send("NEW".encode())
 
         except ConnectionRefusedError as e:
             print("Connection refused!")
@@ -68,17 +78,65 @@ class Chat:
         """
         self.chatSocket.send(message.body.encode())
         self.messages.append(message)
+
+        
         return
 
-    def Receive(self, raw: str) -> Message:
+    def InputPrompt(self):
+        return self.sender.label + " >>>>"
+
+    def IncomingConnection(self, addr, initialMessage):
+        ## somehow figure out their name
+        ## If they 
+
+        ## do the key handshake
+        pass
+        
+    
+
+    def Receive(self, raw) -> Message:
         """
         Check for recieved messages and decrpyt them.
         Also decode them, verify message integrity using message hash and timestamp
         Raise exception if message can't be decrypted or can't be verified by message hash
         """
+        msgStr = raw[1].decode()
+        addr = raw[0]
+
+        #print("Addr", addr)
+        #print(msgStr)
+
+        if(self.active):
+            #print(msgStr)
+            return Message(msgStr, datetime.datetime.now(), self.sender, self.recipient)
+        else:
+            if(not self.awaitingKey):
+
+                print("New connection request, awaiting key exchange...")
+                
+
+                msgSplit = msgStr.split(':')
+                if(msgSplit[0] == "PORT"):
+                    self.sendPort = int(msgSplit[1])
+                    self.sendIP = addr[0]
+
+                    self.InitConnection(response=True)
+                else:
+                    print("wrong initial message format, something is wrong")
+
+                    
+                self.active = True
 
 
-        return Message("", datetime.datetime.now(), Account("", ""), Account("", ""))
+            
+
+        #else: # probably an incoming connection
+            
+                
+
+        
+
+        return Message("", datetime.datetime.now(), self.sender, self.recipient)
 
     def SaveHistory(self):
         """
@@ -94,6 +152,11 @@ class Chat:
 
         Don't care what format thats just an example
         """
+
+        printStr = "({}) {}: {}".format(msg.timestamp.strftime("%X"), msg.recipient.label, msg.body)
+
+        
+        print(printStr)
 
         return
         

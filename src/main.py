@@ -8,6 +8,10 @@ import Encrypt
 from collections import namedtuple
 import threading
 import socket as Socket
+import sys
+import signal
+import queue
+
 #from Message import Message
 
 
@@ -16,7 +20,16 @@ NUMARGS = [0, 3, 2, 2, 3, 2, 1, 1, 1]
 
 Status = namedtuple('Status', ['chat', 'account'])
 
-PORT = 12666
+PORT = 14334
+
+class InputTimeout(Exception):
+    pass
+
+def InputTimedOut(signum, frame):
+    raise InputTimeout
+    
+
+signal.signal(signal.SIGALRM, InputTimedOut)
 
 def Exit_Wrapper(status: Status, argList: list):
     print("exit?")
@@ -33,7 +46,7 @@ def Login(label: str, privateKey: str) -> AC:
     Takes login info and returns true if login was successful.
     If login was successful then return the logged in account"
     """
-    print("here")
+    #print("here")
     retAccount = AC.GetLocalAccount(label, privateKey)
     retAccount.active = True
     retAccount.privateKey = privateKey
@@ -41,8 +54,8 @@ def Login(label: str, privateKey: str) -> AC:
     return retAccount
 
 def Login_Wrapper(status: Status,argStr: list):
-    print("Login::")
-    print(argStr)
+    #print("Login::")
+    #print(argStr)
     
 
     try:
@@ -83,8 +96,8 @@ def CreateAccount(label: str) -> AC:
     return retAccount
 
 def CreateAccount_Wrapper(status: Status,argStr: list):
-    print("Create account::")
-    print(argStr)
+    #print("Create account::")
+    #print(argStr)
 
     try:
         tempAcc = CreateAccount(argStr[0])
@@ -111,8 +124,8 @@ def DeleteAccount(account: AC) -> bool:
     return True
 
 def DeleteAccount_Wrapper(status: Status,argStr: list):
-    print("Delete account::")
-    print(argStr)
+    #print("Delete account::")
+    #print(argStr)
 
     
     if(status.account.active and status.account != AC.NoneAccount()):
@@ -136,8 +149,8 @@ def DeleteHistory(account: AC, recipient: AC) -> bool:
     return True
 
 def DeleteHistory_Wrapper(status: Status, argStr: list):
-    print("Delete history::")
-    print(argStr)
+    #print("Delete history::")
+    #print(argStr)
 
     if(DeleteHistory(status.account, argStr[0])):
         print("History with contact", argStr[0], "has been deleted")
@@ -161,6 +174,7 @@ def InitChat(account: AC, recipientLabel: str, IP: str, port=PORT):
         print(account.privateKey)
         recipientAccount = account.GetChatAccount(recipientLabel)
     except KeyError:
+        
         pubKey = input("This person isn't a contact yet, please enter their public key: ")
         recipientAccount = AC(recipientLabel, pubKey, IP)
         account.NewContact(recipientLabel, pubKey, IP)
@@ -178,8 +192,8 @@ def InitChat(account: AC, recipientLabel: str, IP: str, port=PORT):
     return newChat
     
 def InitChat_Wrapper(status: Status,argStr: list):
-    print("init chat::")
-    print(argStr)
+    #print("init chat::")
+    #print(argStr)
 
     if(not status.account.active):
         print("Need to be logged in to start a chat!")
@@ -249,80 +263,143 @@ def Logout_Wrapper(status, cmdArgs):
     
     return status, None
 
+
+def delete_current_line():
+    # move the cursor up one line
+    print("\033[F", end="")
+    # clear the line
+    print("\033[K", end="")
+
+def move_current_line_down():
+    # save the current cursor position
+    print("\033[s", end="")
+    # move the cursor down one line
+    print("\033[E", end="")
+    # restore the saved cursor position
+    print("\033[u", end="")
+    # delete the current line
+    print("\033[1M", end="")
+
+
 def InputLoop(status: Status):
     """Take input and call the different commands"""
 
+
+
     commands = [NoCommand, Login_Wrapper, CreateAccount_Wrapper, DeleteAccount_Wrapper, InitChat_Wrapper, DeleteHistory_Wrapper, Exit_Wrapper, Help_Wrapper, Logout_Wrapper]
 
+    timeout = 1
+    noPrompt = False
 
-    print("Please type a command then press enter. For help enter 'help'.")
     
     # Input loop
     while(True):
 
-        if(status.chat.active):
-            ## Need to make thread safe print!
-            chatStr = input(status.account.label + " > ")
-            ## send input to the chat!
+        try:
+            signal.alarm(timeout)
+            if(status.chat.active):
+                ## Need to make thread safe print!
+                if(noPrompt):
+                    chatStr = input()
+                else:
+                    chatStr = input(status.chat.InputPrompt())
+                ## send input to the chat!
 
-            newMsg = MSG(chatStr, datetime.datetime.now(), status.account, status.chat.recipient)
+                signal.alarm(0)
 
-            print("sending: ", chatStr)
-            status.chat.Send(newMsg)
-            #status.chat.chatSocket.send(chatStr.encode())
+                newMsg = MSG(chatStr, datetime.datetime.now(), status.account, status.chat.recipient)
+
+                print("sending: ", chatStr)
+                status.chat.Send(newMsg)
+
+                noPrompt = False
+                #status.chat.chatSocket.send(chatStr.encode())
             
-        else:
-            if(status.account.active):
-                commandStr = input(status.account.label + " > ")
             else:
-                commandStr = input(" > ")                
+                #if(status.account.active):
+                if(noPrompt):
+                    commandStr = input()
+                else:
+                    commandStr = input(status.account.label + " > ")
 
+                ## send input to the chat!
 
-            cmdIndex = -1
-            cmdArgs = []
+                #else:
+                    #commandStr = input(" > ")
+                signal.alarm(0)
 
-            try:
-                cmdIndex, cmdArgs = ParseCommand(commandStr)
-            except ArgumentError as e:
-                print("Argument Error: " + str(e))
+                    
+                cmdIndex = -1
+                cmdArgs = []
+
+                noPrompt = False
+
+                try:
+                    cmdIndex, cmdArgs = ParseCommand(commandStr)
+                except ArgumentError as e:
+                    print("Argument Error: " + str(e))
+                    continue
+
+                # No command!
+                if(cmdIndex == -1):
+                    print("invalid command!")
+                    continue
+
+                status, res = commands[cmdIndex](status, cmdArgs)
+
+        except InputTimeout:
+            ## Check message queue
+            #print("checking messages")
+
+            if(status.chat.recvQueue.empty()):
+                #
+
+                #print ("", end="\r")
+                #sys.stdout.write("\033[F")
+                noPrompt = True
                 continue
+            else:
+                while(not status.chat.recvQueue.empty()):
+                    recvdMsg = status.chat.Receive(status.chat.recvQueue.get())
 
-            # No command!
-            if(cmdIndex == -1):
-                print("invalid command!")
-                continue
 
-            status, res = commands[cmdIndex](status, cmdArgs)
+                    move_current_line_down() # moves the input prompt down one line
+                    sys.stdout.write("\x1b[1G") # moves cursor to the very left side of the console
+                    #print("\033[F", end="")
+                    if(recvdMsg.body != ""):
+                        print(recvdMsg)
+                    
+                noPrompt = False
+
+            
+            
         
 
 
 def RecvLoop(status: Status, listenSocket: Socket.socket):
 
     connection = None
+    addr = ""
     
     while True:
         try:
+
             if(connection is None):
                 print("listening")
                 connection, addr = listenSocket.accept()
-                print("done")
+                #print("done")
             else:
-                message = connection.recv(2048)
+                messageStr = connection.recv(2048)
 
-                print(message.decode())
-
-                if(message):
+                
+                if(messageStr):
                     # if we are currently chatting
-                    if(status.chat.active):
-                        status.chat.Receive()
-
-                        
-                        # otherwise this is a new connection!
-                    else:
-                        status.chat.active = True
-                        print("new connection request!")
+                    # have this happen in this thread as input is still blocking
+                    
+                    status.chat.recvQueue.put([addr, messageStr])
+                    
                 else:
-                    print("message empty :(")
+                    #print("message empty :(")
                     status.chat.active = False
                     connection = None
         except:
@@ -359,6 +436,8 @@ def main():
     status = Status(CH.NoneChat(), AC.NoneAccount())
     status = StartRecv(status)
     print(status.chat.recvPort)
+
+    print("Please type a command then press enter. For help enter 'help'.")
     InputLoop(status)
     return
 

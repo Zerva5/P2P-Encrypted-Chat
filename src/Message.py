@@ -10,6 +10,6 @@ class Message:
     recipient: Account
     
     
-    def toString(self):
-        return ""
+    def __str__(self):
+        return "({}) {}: {}".format(self.timestamp.strftime("%X"), self.recipient.label, self.body)
         
