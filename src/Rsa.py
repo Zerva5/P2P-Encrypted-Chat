@@ -10,11 +10,33 @@ def Encrypt(msg: str, key: tuple):
     Those hex values are then concatenated in a string to maintain the sentence structure
     The return type of the message will be a string
     """
-    (k, modula) = key
+    k = int(key.split(',')[0].replace('(',''))
+    modula = int(key.split(',')[1].replace(')',''))
     # int list stores integer representation of each char from string
     # encrypt ints of list and converts them to hex values
     # join list of hex values and create a string which retains sentence structure
-    return ''.join([hex(pow(num, k, modula)) for num in [int(hex(ord(i))[-2]+hex(ord(i))[-1], 16) for i in msg]])
+    
+    
+    int_list = []
+    for i in msg:
+        
+        a = hex(ord(i))[-2]
+        b = hex(ord(i))[-1]
+        c = a+b
+        
+        # \n is xa in this algo, added this line for this edgecase 
+        if c=='xa':
+            c = '0x0a'
+        
+        new_int = int(c,16)
+        int_list.append(new_int)
+    
+    res = []
+    for num in int_list:
+        z = hex(pow(num, k, modula))
+        res.append(z)
+    
+    return ''.join(res)
 
 
 def Decrypt(msg: str, key: tuple):
