@@ -11,17 +11,10 @@ def Encrypt(msg: str, key: tuple):
     The return type of the message will be a string
     """
     (k, modula) = key
-
     # int list stores integer representation of each char from string
-    int_lst = [int(hex(ord(i))[-2]+hex(ord(i))[-1], 16) for i in msg]
-    
     # encrypt ints of list and converts them to hex values
-    enc_lst = []
-    for num in int_lst:
-        enc_lst.append(hex(pow(num, k, modula)))
-
     # join list of hex values and create a string which retains sentence structure
-    return ''.join(enc_lst)
+    return ''.join([hex(pow(num, k, modula)) for num in [int(hex(ord(i))[-2]+hex(ord(i))[-1], 16) for i in msg]])
 
 
 def Decrypt(msg: str, key: tuple):
@@ -33,7 +26,6 @@ def Decrypt(msg: str, key: tuple):
     return the decrypted string
     """
     (k, modula) = key
-
     # int list stores the integer representation of each char from string
     int_list = []
     ele = ""
@@ -48,12 +40,8 @@ def Decrypt(msg: str, key: tuple):
     int_list.append(int(ele, 16))
 
     # decrypt ints of int list
-    dec_lst = []
-    for num in int_list:
-        dec_lst.append(chr(pow(num, k, modula)))
-
     # join the list of strings and return the decrypted message
-    return ''.join(dec_lst)
+    return ''.join([chr(pow(num, k, modula)) for num in int_list])
 
 
 
@@ -148,3 +136,13 @@ def get_prime(ksize: int):
     while not prime(i):
         i = random.getrandbits(bit_length(ksize))
     return i
+
+
+def main():
+    u,r = GeneratePair(2048)
+    e = Encrypt("biscuits", u)
+    d = Decrypt(e, r)
+    print(d)
+
+if __name__ == "__main__":
+    main()
