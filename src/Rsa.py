@@ -10,8 +10,7 @@ def Encrypt(msg: str, key: tuple):
     Those hex values are then concatenated in a string to maintain the sentence structure
     The return type of the message will be a string
     """
-    k = int(key.split(',')[0].replace('(',''))
-    modula = int(key.split(',')[1].replace(')',''))
+    k, modula = key
     # int list stores integer representation of each char from string
     # encrypt ints of list and converts them to hex values
     # join list of hex values and create a string which retains sentence structure
@@ -23,7 +22,9 @@ def Encrypt(msg: str, key: tuple):
         a = hex(ord(i))[-2]
         b = hex(ord(i))[-1]
         c = a+b
-        
+        print(i, c)
+        if c == 'xd':
+            c = '0x0d'
         # \n is xa in this algo, added this line for this edgecase 
         if c=='xa':
             c = '0x0a'
@@ -52,8 +53,7 @@ def Decrypt(msg: str, key: tuple):
     # I wAS under the assumption that there is only a tuple input for this function 
     # but this is not the case for the login function when you supply password
     
-    k = int(key.split(',')[0].replace('(',''))
-    modula = int(key.split(',')[1].replace(')',''))
+    k, modula = key
     # int list stores the integer representation of each char from string
     int_list = []
     ele = ""
@@ -172,3 +172,4 @@ def get_prime(ksize: int):
     while not prime(i):
         i = random.getrandbits(bit_length(ksize))
     return i
+
