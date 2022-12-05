@@ -1,6 +1,9 @@
 import pytest
 import unittest
 from main import *
+from Account import *
+import shutil
+_root = os.getcwd() + "/Accounts/"
 
 class Test_AccountCreation():
     
@@ -14,9 +17,30 @@ class Test_AccountCreation():
         assert False
     
     def test_create_account(self):
-        a,b = ParseCommand("create_account")
+
+        bob = Account("LordLucas", "1", "1", "1234")
+        bob.InitializeLocalAccount()
         
-        assert False
+        
+        assert os.path.isdir(_root + "LordLucas") 
+
+        bob.NewContact("tracy", "5", "2")
+        bob.NewContact("steve", "2", "2")
+        bob.NewContact("jonees", "3", "2")
+        
+        assert os.path.isdir(_root + "LordLucas/" + "0") 
+        assert os.path.isdir(_root + "LordLucas/" + "1") 
+        assert os.path.isdir(_root + "LordLucas/" + "2") 
+        
+        # haven't tested this yet
+        bob.StoreContacts()
+        bob.StoreMessages("tracy", "hey")
+
+        shutil.rmtree(_root + "LordLucas")
+        
+        
+        assert not os.path.isdir(_root + "LordLucas") 
+        
         
     def test_delete_account(self):
         a,b = ParseCommand("delete_account")
@@ -43,6 +67,7 @@ class Test_AccountCreation():
         
         assert False
         
+    
 
 
 
