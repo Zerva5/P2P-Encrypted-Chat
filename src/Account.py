@@ -3,8 +3,10 @@ import datetime
 import os, shutil #for file manipulation
 import inspect #for stack inspection for easier debugging
 from Rsa import *
-#from Message import Message
+from collections import namedtuple
 
+
+ContactInfo = namedtuple("ContactInfo", ["fileNumber", "publicKey"])
 
 _root = os.getcwd() + "/Accounts/"
 
@@ -51,26 +53,38 @@ class Account:
 
         return
 
+
     def __eq__(self, other):
         return self.label == other.label and self.publicKey == other.publicKey
         
 
     def GetContacts(self): 
         """
-        Retrieves local account's contact list and returns it as a dictionary of label-file_id associations
+        Retrieves local account's contact list and returns it as a dictionary of label<->(file_id, publicKey) associations
         """
         Account.AssertLocalAccount(self.privateKey)
         
         fp = open(_root + self.label + "/contacts.txt", "r")
         fileData = Decrypt(fp.read(), self.privateKey)
         contacts = {}
-        contacts[self.label] = "-1"
+        contacts[self.label] = ContactInfo("-1", self.publicKey)
 
-        for association in fileData.split(): #this loop adds all of the label<->file_id associations to the contacts dictionary
+        for association in fileData.split(): #this loop adds all of the label<->(file_id, publicKey) associations to the contacts dictionary
             kv_Pair = association.split("-")
-            contacts[kv_Pair[0]] = kv_Pair[1]
+            contacts[kv_Pair[0]] = ContactInfo(kv_Pair[1], kv_Pair[2])
 
         return contacts
+
+    
+    def VerifyContact(self, publicKey):
+        """
+        Returns the label of the contact with the given public key, Raising an exception if they don't exist
+        """
+        for k,v in self.contacts.items():
+            if v.publicKey == publicKey :
+                return k
+        
+        raise Exception("Contact with that privateKey not found")
 
 
     def StoreContacts(self):
@@ -83,7 +97,7 @@ class Account:
 
         #adds all dictionary entries into a string to be encrypted
         for k,v in self.contacts.items():
-            string += k + "-" + v + "\n"
+            string += k + "-" + v.fileNumber + "-" + v.publicKey + "\n"
 
             
         fp.write(Encrypt(string, self.publicKey))
@@ -101,7 +115,7 @@ class Account:
         Account.AssertLocalAccount(self.privateKey)
 
         try:
-            id = self.contacts[contactLabel]
+            id = self.contacts[contactLabel].fileNumber
             filePath = _root + self.label + "/" + id + "/info.txt"
 
             fp = open(filePath, "r")
@@ -123,7 +137,7 @@ class Account:
         """
         Account.AssertLocalAccount(self.privateKey)
 
-        id = self.contacts[contactLabel]
+        id = self.contacts[contactLabel].fileNumber
         historyPath = _root + self.label + "/" + id + "/history.txt"
 
         fp = open(historyPath, "a")
@@ -140,7 +154,7 @@ class Account:
         """
         Account.AssertLocalAccount(self.privateKey)
 
-        id = self.contacts[contactLabel]
+        id = self.contacts[contactLabel].fileNumber
         directoryPath = _root + self.label + "/" + id + "/"
 
         open(directoryPath + "history.txt", "w").close() #this clears the history.txt file
@@ -177,8 +191,8 @@ class Account:
             #creates the directory for the contact with the id as the name
             os.mkdir(_root + self.label + "/" + str(num))
 
-            #associates the contact's label with a number id in our contact dictionary
-            self.contacts[contactLabel] = str(num)
+            #associates the contact's label with a number id and their publicKey in our contact dictionary
+            self.contacts[contactLabel] = ContactInfo(str(num), publicKey)
 
             #creates the info file and writes the contact information in
             fp = open(_root + self.label + "/" + str(num) + "/info.txt", "w")
@@ -201,7 +215,7 @@ class Account:
         """
         Account.AssertLocalAccount(self.privateKey)
         
-        id = self.contacts[contactLabel]
+        id = self.contacts[contactLabel].fileNumber
         directoryPath = _root + self.label + "/" + id + "/"
 
         del self.contacts[contactLabel] #deletes contact's directory entry
@@ -255,11 +269,12 @@ class Account:
 
 # bob = Account("bob", "1", "1", "1234")
 # bob.InitializeLocalAccount()
-# bob.NewContact("tracy", "1", "2")
-# bob.NewContact("steve", "1", "2")
-# bob.NewContact("jonees", "1", "2")
+# bob.NewContact("tracy", "5", "2")
+# bob.NewContact("steve", "2", "2")
+# bob.NewContact("jonees", "3", "2")
 # bob.StoreContacts()
 # bob.StoreMessages("tracy", "hey")
+
 
 
 # Account_Folder
