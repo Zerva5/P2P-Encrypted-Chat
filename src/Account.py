@@ -67,7 +67,7 @@ class Account:
         fp = open(_root + self.label + "/contacts.txt", "r")
         fileData = Decrypt(fp.read(), self.privateKey)
         contacts = {}
-        contacts[self.label] = ContactInfo("-1", self.publicKey)
+        #contacts[self.label] = ContactInfo("-1", self.publicKey)
 
         for association in fileData.split(): #this loop adds all of the label<->(file_id, publicKey) associations to the contacts dictionary
             kv_Pair = association.split("-")

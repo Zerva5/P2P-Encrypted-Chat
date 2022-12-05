@@ -116,15 +116,15 @@ def Help_Wrapper(status: Status, argList: list):
             
             create_account  arguments: <account_name> 
             
-            delete_account  arguments:
+            delete_account  arguments: <account_name> <password>
             
-            chat            arguments:
+            chat            arguments: <account_name> <IP> <port> 
             
-            delete_history  arguments:
+            delete_history  arguments: <account_namee> <password>
             
-            exit            arguments:
+            exit            arguments: None
             
-            logout          arguments:
+            logout          arguments: None
         
         
         """)
