@@ -19,6 +19,7 @@ class Account:
     #publicTuple: tuple = field(init=False)
     #privateTuple: tuple = field(init=False)
     active: bool = False
+    modula: str = ""
 
     @property
     def contacts(self):

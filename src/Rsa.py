@@ -47,7 +47,13 @@ def Decrypt(msg: str, key: tuple):
     Then decrypt all the integers of the list and join the list of chars together
     return the decrypted string
     """
-    (k, modula) = key
+    
+    
+    # I wAS under the assumption that there is only a tuple input for this function 
+    # but this is not the case for the login function when you supply password
+    
+    k = int(key.split(',')[0].replace('(',''))
+    modula = int(key.split(',')[1].replace(')',''))
     # int list stores the integer representation of each char from string
     int_list = []
     ele = ""
@@ -63,7 +69,15 @@ def Decrypt(msg: str, key: tuple):
 
     # decrypt ints of int list
     # join the list of strings and return the decrypted message
-    return ''.join([chr(pow(num, k, modula)) for num in int_list])
+    
+    res = []
+    for num in int_list:
+        exp = pow(num, k, modula)
+        
+        a = chr(exp)
+        res.append(a)
+    
+    return ''.join(res)
 
 
 

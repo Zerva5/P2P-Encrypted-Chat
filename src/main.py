@@ -274,6 +274,16 @@ def InitChat(account: AC, recipientLabel: str, IP: str, sendPort=PORT, recvPort 
         # Save contact?
 
     newChat = CH(account, recipientAccount)
+    
+    # Generate keypair for the account
+    x,y = Rsa.GeneratePair(2048)
+    # by convention: x will go to the initializer and we encrypt y
+    
+    
+    
+    
+    newChat.sessionKey.append(x)
+    newChat.sessionKey.append(y) #this is temporarily stored 
     newChat.sendIP = recipientAccount.IP
     newChat.sendPort = sendPort
     newChat.recvPort = recvPort

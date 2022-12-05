@@ -18,7 +18,7 @@ class Chat:
 
     sendIP: str = field(init=False)
     recvIP: str = field(init=False)
-    sessionKey: str = field(init=False) # Not 100% if its one key or two.
+    sessionKey: list = field(init=False) # two keys for the session for each user respectively
     messages: list[Message] = field(default_factory=list)# list is the same as an array
     active: bool = False
     awaitingKey: bool = False
@@ -100,7 +100,7 @@ class Chat:
 
                 
             self.chatSocket = Socket.socket()
-
+            
             self.chatSocket.connect((self.sendIP, self.sendPort))
 
             if(response): # someone initiated a chat with us
