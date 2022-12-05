@@ -1,8 +1,11 @@
 from ctypes import ArgumentError
 from dataclasses import dataclass
 import datetime
+
 from Account import Account as AC
-from Message import Message as MSG
+
+import Message
+#from Message import Message as MSG
 from Chat import Chat as CH
 import Rsa
 from collections import namedtuple
@@ -16,11 +19,71 @@ import queue
 
 
 COMMANDS = ["", "login", "create_account", "delete_account", "chat", "delete_history", "exit", "help", "logout"]
-NUMARGS = [0, 3, 2, 2, 3, 2, 1, 1, 1]
+NUMARGS = [0, 3, 2, 2, 4, 2, 1, 1, 1]
 
 Status = namedtuple('Status', ['chat', 'account'])
 
-PORT = 14334
+PORT = 14555
+
+def RecvLoop(status: Status, listenSocket: Socket.socket):
+
+    connection = None
+    addr = ""
+    
+    while True:
+        try:
+
+            if(connection is None):
+
+                connection, addr = listenSocket.accept()
+
+                #print("done")
+            else:
+                messageStr = connection.recv(2048)
+
+                
+                if(messageStr):
+                    # if we are currently chatting
+                    # have this happen in this thread as input is still blocking
+                    
+                    status.chat.recvQueue.put([addr, messageStr])
+                    
+                else:
+                    #print("message empty :(")
+                    status.chat.active = False
+                    connection = None
+        except:
+            continue
+    return
+
+def StartRecv(status: Status):
+    listenSocket = Socket.socket()
+    
+    port=PORT
+
+    recvIP = "127.0.0.1"
+
+    while True:
+        try:
+            listenSocket.bind((recvIP, port))
+            break
+        except OSError as e:
+            port += 1
+        
+    listenSocket.listen(1)
+    print("Listening on port #", port)
+
+    #RecvLoop(status, listenSocket)
+
+    t = threading.Thread(target = RecvLoop, args=(status, listenSocket))
+    t.daemon = True
+    t.start()
+
+    
+
+    status.chat.recvPort = port
+
+    return status
 
 class InputTimeout(Exception):
     pass
@@ -32,7 +95,15 @@ def InputTimedOut(signum, frame):
 signal.signal(signal.SIGALRM, InputTimedOut)
 
 def Exit_Wrapper(status: Status, argList: list):
-    print("exit?")
+
+    if(status.account.active):
+        print("Encrypting and saving contacts...")
+        status.account.StoreContacts()
+
+    print("exiting...")        
+
+    exit()
+
     return status, None
  
 def Help_Wrapper(status: Status, argList: list):
@@ -61,6 +132,8 @@ def Login_Wrapper(status: Status,argStr: list):
     try:
         newAccount = Login(argStr[0], argStr[1])
         status = Status(status.chat, newAccount)
+        status.chat.sender = newAccount
+        status = StartRecv(status)
 
         print("Logged in as", status.account.label)
         print("privKey: ", status.account.privateKey)
@@ -102,8 +175,8 @@ def CreateAccount_Wrapper(status: Status,argStr: list):
     try:
         tempAcc = CreateAccount(argStr[0])
 
-        print("Public key: " + tempAcc.publicKey)
-        print("Private key: " + tempAcc.privateKey)
+        print("Public key: " + str(tempAcc.publicKey))
+        print("Private key: " + str(tempAcc.privateKey))
         print("DO NOT FORGET THIS")
         
     except FileExistsError as e:
@@ -161,7 +234,7 @@ def DeleteHistory_Wrapper(status: Status, argStr: list):
 
 
 
-def InitChat(account: AC, recipientLabel: str, IP: str, port=PORT):
+def InitChat(account: AC, recipientLabel: str, IP: str, sendPort=PORT, recvPort = PORT):
     """
     Tries to find recipient account based on the label, if it can't find it ask for the recipients public key then create a new recipient. Once thats done start a new chat object at the given IP.
 
@@ -178,16 +251,15 @@ def InitChat(account: AC, recipientLabel: str, IP: str, port=PORT):
         pubKey = input("This person isn't a contact yet, please enter their public key: ")
         recipientAccount = AC(recipientLabel, pubKey, IP)
         account.NewContact(recipientLabel, pubKey, IP)
-            
-    
+        # Save contact?
+
     newChat = CH(account, recipientAccount)
     newChat.sendIP = recipientAccount.IP
-    newChat.sendPort = PORT
-    newChat.recvPort = port
+    newChat.sendPort = sendPort
+    newChat.recvPort = recvPort
 
     newChat.InitConnection()
 
-    # Save new contact here
 
     return newChat
     
@@ -200,9 +272,13 @@ def InitChat_Wrapper(status: Status,argStr: list):
         return status,None
 
     try:
-        newChat = InitChat(status.account, argStr[0], argStr[1], status.chat.recvPort)
+        print(argStr[2])
+        newChat = InitChat(status.account, argStr[0], argStr[1], int(argStr[2]), status.chat.recvPort)
     except ConnectionRefusedError:
         print("Connection refused!")
+        return status, None
+    except ValueError:
+        print("Port needs to be numeric value from 0-65535")
         return status, None
 
         
@@ -255,6 +331,9 @@ def Logout(Account: AC):
 def Logout_Wrapper(status, cmdArgs):
     if(status.account.active):
         print(status.account.label, "has been logged out")
+
+        status.account.StoreContacts()
+        
         Logout(status.account)
         status = Status(status.chat, AC.NoneAccount())
     else:
@@ -298,22 +377,25 @@ def InputLoop(status: Status):
         try:
             signal.alarm(timeout)
             if(status.chat.active):
-                ## Need to make thread safe print!
+                # Don't rewrite the ">" prompt
                 if(noPrompt):
                     chatStr = input()
                 else:
                     chatStr = input(status.chat.InputPrompt())
-                ## send input to the chat!
-
+                    
                 signal.alarm(0)
+                
+                if(chatStr == "exit"):
+                    status.chat.EndConnection()
+                    print("Exited")
+                    noPrompt = False
+                else:
+                    newMsg = Message.Message(chatStr, datetime.datetime.now(), status.account, status.chat.recipient)
 
-                newMsg = MSG(chatStr, datetime.datetime.now(), status.account, status.chat.recipient)
+                    ## send input to the chat!
+                    status.chat.Send(newMsg)
 
-                print("sending: ", chatStr)
-                status.chat.Send(newMsg)
-
-                noPrompt = False
-                #status.chat.chatSocket.send(chatStr.encode())
+                    noPrompt = False
             
             else:
                 #if(status.account.active):
@@ -322,12 +404,8 @@ def InputLoop(status: Status):
                 else:
                     commandStr = input(status.account.label + " > ")
 
-                ## send input to the chat!
-
-                #else:
-                    #commandStr = input(" > ")
+                # Stop the signal timeout 
                 signal.alarm(0)
-
                     
                 cmdIndex = -1
                 cmdArgs = []
@@ -352,16 +430,12 @@ def InputLoop(status: Status):
             #print("checking messages")
 
             if(status.chat.recvQueue.empty()):
-                #
-
-                #print ("", end="\r")
-                #sys.stdout.write("\033[F")
                 noPrompt = True
                 continue
             else:
                 while(not status.chat.recvQueue.empty()):
+                    print(status.chat.active)
                     recvdMsg = status.chat.Receive(status.chat.recvQueue.get())
-
 
                     move_current_line_down() # moves the input prompt down one line
                     sys.stdout.write("\x1b[1G") # moves cursor to the very left side of the console
@@ -371,71 +445,27 @@ def InputLoop(status: Status):
                     
                 noPrompt = False
 
+        except BrokenPipeError:
+            #move_current_line_down() # moves the input prompt down one line
+            #sys.stdout.write("\x1b[1G") # moves cursor to the very left side of the console
+
+            status.chat.EndConnection(response = True)
+
+            print("Connection dropped")
+
+
             
             
         
 
 
-def RecvLoop(status: Status, listenSocket: Socket.socket):
 
-    connection = None
-    addr = ""
-    
-    while True:
-        try:
-
-            if(connection is None):
-                print("listening")
-                connection, addr = listenSocket.accept()
-                #print("done")
-            else:
-                messageStr = connection.recv(2048)
-
-                
-                if(messageStr):
-                    # if we are currently chatting
-                    # have this happen in this thread as input is still blocking
-                    
-                    status.chat.recvQueue.put([addr, messageStr])
-                    
-                else:
-                    #print("message empty :(")
-                    status.chat.active = False
-                    connection = None
-        except:
-            continue
-    return
-
-def StartRecv(status: Status):
-    listenSocket = Socket.socket()
-    
-    port=PORT
-
-    recvIP = "127.0.0.1"
-
-    try:
-        listenSocket.bind((recvIP, port))
-    except OSError as e:
-        port += 1
-        listenSocket.bind((recvIP, port))        
-        
-    listenSocket.listen(1)
-
-    #RecvLoop(status, listenSocket)
-
-    t = threading.Thread(target = RecvLoop, args=(status, listenSocket))
-    t.daemon = True
-    t.start()
-
-    status.chat.recvPort = port
-
-    return status
 
 
 def main():
     status = Status(CH.NoneChat(), AC.NoneAccount())
-    status = StartRecv(status)
-    print(status.chat.recvPort)
+    #status = StartRecv(status)
+    #print(status.chat.recvPort)
 
     print("Please type a command then press enter. For help enter 'help'.")
     InputLoop(status)

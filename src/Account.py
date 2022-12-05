@@ -3,6 +3,7 @@ import datetime
 import os, shutil #for file manipulation
 import inspect #for stack inspection for easier debugging
 from Rsa import *
+#from Message import Message
 
 
 _root = os.getcwd() + "/Accounts/"
@@ -13,6 +14,8 @@ class Account:
     publicKey: str
     IP: str = ""
     privateKey: str = ""
+    #publicTuple: tuple = field(init=False)
+    #privateTuple: tuple = field(init=False)
     active: bool = False
 
     @property
@@ -39,7 +42,7 @@ class Account:
 
         os.mkdir(_root + self.label) #make account folder and files
         with open(_root + self.label + "/info.txt", 'w') as fp:
-            data = Encrypt(self.label + "\n" + self.publicKey + "\n" + self.IP, self.privateKey)
+            data = Encrypt(self.label + "\n" + str(self.publicKey) + "\n" + self.IP, str(self.privateKey))
             fp.write(data)
 
         with open(_root + self.label + "/contacts.txt", 'w') as fp:
@@ -82,7 +85,8 @@ class Account:
         for k,v in self.contacts.items():
             string += k + "-" + v + "\n"
 
-        fp.write(Encrypt(string, self.privateKey))
+            
+        fp.write(Encrypt(string, self.publicKey))
         fp.close()
 
         return
@@ -113,7 +117,7 @@ class Account:
             raise KeyError("GetChatAccount called with label to nonexistent account")
         
 
-    def StoreMessages(self, contactLabel: str, message: str):
+    def StoreMessages(self, contactLabel: str, messages: list[str]):
         """
         Appends a message plus a \n onto the history.txt file of the given contactLabel
         """
@@ -122,8 +126,8 @@ class Account:
         id = self.contacts[contactLabel]
         historyPath = _root + self.label + "/" + id + "/history.txt"
 
-        fp = open(historyPath, "a") 
-        fp.write(message + "\n")
+        fp = open(historyPath, "a")
+        fp.write('\n'.join(messages)) 
         fp.close()
         
         return
