@@ -42,8 +42,7 @@ class Test_AccountCreation():
     def test_encrypt(self):
         
         data = Encrypt("Lucas" + "\n" + "(724723, 1649057)" + "\n" + "localhost", "(730267, 1649057)")
-        
-        assert False
+        assert type(data) == str
 
     def test_decrypt(self):
         a,b = ParseCommand("delete_account")
