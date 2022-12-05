@@ -41,6 +41,17 @@ Use a Data Flow Diagrams (DFD) to design your application. Specify all security 
 
 Explain how your design implements the requirements above.
 
+# Key Exchange
+Bob initializes chat with Alice and sends her his public key encrypted with her public key. 
+
+Alice checks that public key against her contact list to find if Bob is in her contacts
+
+If he is in her contacts she generates a temporary RSA keypair. She sends one of the keys to Bob, she encrypts that key with her private key and Bob's public key.
+
+Bob recieves this key, and decrypts it with his private key and her public key. Then he saves it as the "session key" for that chat. 
+
+Bob and Alice have now exchanged keys and will use this session key to encrypt and decryt their messages.
+
 # Code breakdown
 ## Netcode
 - Message format: timestamp, message hash, message
