@@ -92,7 +92,7 @@ def InputTimedOut(signum, frame):
     raise InputTimeout
     
 
-signal.signal(signal.SIGALRM, InputTimedOut)
+#signal.signal(signal.SIGALRM, InputTimedOut)
 
 def Exit_Wrapper(status: Status, argList: list):
 
@@ -107,7 +107,27 @@ def Exit_Wrapper(status: Status, argList: list):
     return status, None
  
 def Help_Wrapper(status: Status, argList: list):
-    print("lmao no help 4 u")
+    print("""
+        Secure Messaging Application
+        
+        Options:
+        
+            login           arguments: <account_name> <password>
+            
+            create_account  arguments: <account_name> 
+            
+            delete_account  arguments:
+            
+            chat            arguments:
+            
+            delete_history  arguments:
+            
+            exit            arguments:
+            
+            logout          arguments:
+        
+        
+        """)
     return status, None
 
 
@@ -307,6 +327,7 @@ def ParseCommand(cmdStr: str):
 
     ## Now we parse the parameters
     if(NUMARGS[cmdIndex] != len(strSplit)):
+        print("Need {} argument but given {}".format(cmdIndex,len(strSplit)-1))
         raise ArgumentError("Invalid number of arguments!")
 
     ## now we can assume they are the right number of args
@@ -375,7 +396,7 @@ def InputLoop(status: Status):
     while(True):
 
         try:
-            signal.alarm(timeout)
+            #signal.alarm(timeout)
             if(status.chat.active):
                 # Don't rewrite the ">" prompt
                 if(noPrompt):
@@ -383,7 +404,7 @@ def InputLoop(status: Status):
                 else:
                     chatStr = input(status.chat.InputPrompt())
                     
-                signal.alarm(0)
+                #signal.alarm(0)
                 
                 if(chatStr == "exit"):
                     status.chat.EndConnection()
@@ -405,7 +426,7 @@ def InputLoop(status: Status):
                     commandStr = input(status.account.label + " > ")
 
                 # Stop the signal timeout 
-                signal.alarm(0)
+                #signal.alarm(0)
                     
                 cmdIndex = -1
                 cmdArgs = []
