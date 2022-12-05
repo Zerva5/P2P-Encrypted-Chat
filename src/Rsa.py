@@ -136,13 +136,3 @@ def get_prime(ksize: int):
     while not prime(i):
         i = random.getrandbits(bit_length(ksize))
     return i
-
-
-def main():
-    u,r = GeneratePair(2048)
-    e = Encrypt("biscuits", u)
-    d = Decrypt(e, r)
-    print(d)
-
-if __name__ == "__main__":
-    main()
