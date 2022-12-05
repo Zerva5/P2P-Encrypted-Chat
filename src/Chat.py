@@ -105,6 +105,7 @@ class Chat:
 
             if(response): # someone initiated a chat with us
                 
+                
                 pass
             else: # we are initiating the chat
                 print("Chat connection complete")
