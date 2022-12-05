@@ -51,7 +51,16 @@ class Test_AccountCreation():
         assert type(data) == str
 
 
-    
+    def test_Login(self):
+        bob = Account("LordLucas", "1", "1", '(1234,4567)')
+        bob.InitializeLocalAccount()
+        
+        data = Login("LordLucas","1234:4567")
+        
+        
+        
+        shutil.rmtree(_root + "LordLucas")
+        assert not os.path.isdir(_root + "LordLucas") 
 
 
 

@@ -112,7 +112,7 @@ def Help_Wrapper(status: Status, argList: list):
         
         Options:
         
-            login           arguments: <account_name> <password>
+            login           arguments: <account_name> <password:modulo>
             
             create_account  arguments: <account_name> 
             
@@ -136,9 +136,14 @@ def Login(label: str, privateKey: str) -> AC:
     """
     Takes login info and returns true if login was successful.
     If login was successful then return the logged in account"
+    
+    privateKey will be taken as privkey AND modulo seperated by colon
+    e.g 1234:4567
     """
-    #print("here")
-    retAccount = AC.GetLocalAccount(label, privateKey)
+    
+    resPrivateKey = (privateKey.split(':')[0], privateKey.split(':')[1])
+    
+    retAccount = AC.GetLocalAccount(label, resPrivateKey)
     retAccount.active = True
     retAccount.privateKey = privateKey
     
