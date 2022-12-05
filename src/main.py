@@ -18,8 +18,8 @@ import queue
 #from Message import Message
 
 
-COMMANDS = ["", "login", "create_account", "delete_account", "chat", "delete_history", "exit", "help", "logout"]
-NUMARGS = [0, 3, 2, 2, 4, 2, 1, 1, 1]
+COMMANDS = ["", "login", "create_account", "delete_account", "chat", "delete_history", "exit", "help", "logout", "create_contact", "list_contacts"]
+NUMARGS = [0, 3, 2, 2, 4, 2, 1, 1, 1, 3, 1]
 
 Status = namedtuple('Status', ['chat', 'account'])
 
@@ -132,12 +132,13 @@ def Help_Wrapper(status: Status, argList: list):
 
 
 
-def Login(label: str, privateKey: str) -> AC:
+def Login(label: str, privateKey: tuple) -> AC:
     """
     Takes login info and returns true if login was successful.
     If login was successful then return the logged in account"
     """
     #print("here")
+    
     retAccount = AC.GetLocalAccount(label, privateKey)
     retAccount.active = True
     retAccount.privateKey = privateKey
@@ -145,18 +146,18 @@ def Login(label: str, privateKey: str) -> AC:
     return retAccount
 
 def Login_Wrapper(status: Status,argStr: list):
-    #print("Login::")
+
     #print(argStr)
-    
 
     try:
-        newAccount = Login(argStr[0], argStr[1])
+        newAccount = Login(argStr[0], Rsa.KeyFromString(argStr[1]))
+        
         status = Status(status.chat, newAccount)
         status.chat.sender = newAccount
         status = StartRecv(status)
 
         print("Logged in as", status.account.label)
-        print("privKey: ", status.account.privateKey)
+        print("Your public Key: ", Rsa.KeyToString(status.account.publicKey))
     except IndexError as e:
         print(str(e))
     except FileNotFoundError as e:
@@ -179,7 +180,7 @@ def CreateAccount(label: str) -> AC:
     # Generate keypair for the account
     public,private = Rsa.GeneratePair(2048)
 
-    retAccount = AC(label, public)
+    retAccount = AC(label)
 
     retAccount.privateKey = private
     retAccount.publicKey = public
@@ -194,9 +195,10 @@ def CreateAccount_Wrapper(status: Status,argStr: list):
 
     try:
         tempAcc = CreateAccount(argStr[0])
+        
 
-        print("Public key: " + str(tempAcc.publicKey))
-        print("Private key: " + str(tempAcc.privateKey))
+        print("Public key: " + Rsa.KeyToString(tempAcc.publicKey))
+        print("Private key: " + Rsa.KeyToString(tempAcc.privateKey))
         print("DO NOT FORGET THIS")
         
     except FileExistsError as e:
@@ -252,6 +254,21 @@ def DeleteHistory_Wrapper(status: Status, argStr: list):
     
     return status, None
 
+def CreateContact(status: Status, label: str, publicKey: str):
+    newContact = status.account.NewContact(label, publicKey)
+
+    return newContact
+
+
+def CreateContact_Wrapper(status: Status, argStr: list):
+
+    newAccount = CreateContact(status, argStr[0], argStr[1])
+
+    print("Added", newAccount.label, "as a new contact. Their public key is", Rsa.KeyToString(newAccount.publicKey))
+
+    return status, None
+    
+
 
 
 def InitChat(account: AC, recipientLabel: str, IP: str, sendPort=PORT, recvPort = PORT):
@@ -269,8 +286,12 @@ def InitChat(account: AC, recipientLabel: str, IP: str, sendPort=PORT, recvPort 
     except KeyError:
         
         pubKey = input("This person isn't a contact yet, please enter their public key: ")
-        recipientAccount = AC(recipientLabel, pubKey, IP)
-        account.NewContact(recipientLabel, pubKey, IP)
+        publicKey = Rsa.KeyFromString(pubKey)
+        recipientAccount = account.NewContact(recipientLabel, Rsa.KeyToString(publicKey))
+        recipientAccount.IP = IP
+        recipientAccount.publicKey = publicKey
+        
+
         # Save contact?
 
     newChat = CH(account, recipientAccount)
@@ -327,7 +348,7 @@ def ParseCommand(cmdStr: str):
 
     ## Now we parse the parameters
     if(NUMARGS[cmdIndex] != len(strSplit)):
-        print("Need {} argument but given {}".format(cmdIndex,len(strSplit)-1))
+        print("Need {} argument but given {}".format(NUMARGS[cmdIndex],len(strSplit)-1))
         raise ArgumentError("Invalid number of arguments!")
 
     ## now we can assume they are the right number of args
@@ -363,6 +384,17 @@ def Logout_Wrapper(status, cmdArgs):
     
     return status, None
 
+def ListContacts_Wrapper(status: Status, cmdArgs):
+
+    #print(status.account.contacts)
+
+    print("Contacts:")
+    for key in status.account.contacts:
+        print(key + ":" + status.account.contacts[key][1])
+        
+
+    return status, None
+
 
 def delete_current_line():
     # move the cursor up one line
@@ -386,7 +418,7 @@ def InputLoop(status: Status):
 
 
 
-    commands = [NoCommand, Login_Wrapper, CreateAccount_Wrapper, DeleteAccount_Wrapper, InitChat_Wrapper, DeleteHistory_Wrapper, Exit_Wrapper, Help_Wrapper, Logout_Wrapper]
+    commands = [NoCommand, Login_Wrapper, CreateAccount_Wrapper, DeleteAccount_Wrapper, InitChat_Wrapper, DeleteHistory_Wrapper, Exit_Wrapper, Help_Wrapper, Logout_Wrapper, CreateContact_Wrapper, ListContacts_Wrapper]
 
     timeout = 1
     noPrompt = False

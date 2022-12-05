@@ -13,11 +13,11 @@ _root = os.getcwd() + "/Accounts/"
 @dataclass
 class Account:
     label: str
-    publicKey: str
     IP: str = ""
-    privateKey: str = ""
-    #publicTuple: tuple = field(init=False)
-    #privateTuple: tuple = field(init=False)
+    
+    publicKey: tuple = tuple()
+    privateKey: tuple = tuple()
+    
     active: bool = False
 
     @property
@@ -44,7 +44,9 @@ class Account:
 
         os.mkdir(_root + self.label) #make account folder and files
         with open(_root + self.label + "/info.txt", 'w') as fp:
-            data = Encrypt(self.label + "\n" + str(self.publicKey) + "\n" + self.IP, str(self.privateKey))
+            clearText = self.label + '\n' + KeyToString(self.publicKey) + '\n' + self.IP
+            data = Encrypt(clearText, self.publicKey)
+            
             fp.write(data)
 
         with open(_root + self.label + "/contacts.txt", 'w') as fp:
@@ -62,12 +64,15 @@ class Account:
         """
         Retrieves local account's contact list and returns it as a dictionary of label<->(file_id, publicKey) associations
         """
+
         Account.AssertLocalAccount(self.privateKey)
+
+        contacts = {}
+
         
         fp = open(_root + self.label + "/contacts.txt", "r")
+        
         fileData = Decrypt(fp.read(), self.privateKey)
-        contacts = {}
-        #contacts[self.label] = ContactInfo("-1", self.publicKey)
 
         for association in fileData.split(): #this loop adds all of the label<->(file_id, publicKey) associations to the contacts dictionary
             kv_Pair = association.split("-")
@@ -174,7 +179,7 @@ class Account:
         return
     
 
-    def NewContact(self, contactLabel: str, publicKey: str, IP: str): 
+    def NewContact(self, contactLabel: str, publicKey: str, IP: str = ""): 
         """
         Generates folder and files for account, Adds label to contact dictionary, Returns account object with details, Raises exception if label already exists
         """
@@ -196,14 +201,17 @@ class Account:
 
             #creates the info file and writes the contact information in
             fp = open(_root + self.label + "/" + str(num) + "/info.txt", "w")
-            info = Encrypt(contactLabel + "\n" + publicKey + "\n" + IP, self.privateKey)
+            clearText = contactLabel + "\n" + publicKey
+            info = Encrypt(clearText, self.publicKey)
             fp.write(info)
             fp.close()
 
             #creates the chat history file
             open(_root + self.label + "/" + str(num) + "/history.txt", "w").close()
 
-            return Account(contactLabel, publicKey, IP)
+            self.StoreContacts()
+
+            return Account(contactLabel, IP=IP, publicKey = KeyFromString(publicKey))
         
         else:
             raise Exception("A contact with that name already exists")
@@ -232,7 +240,7 @@ class Account:
 
 
     @staticmethod
-    def GetLocalAccount(label: str, privateKey: str): 
+    def GetLocalAccount(label: str, privateKey: tuple): 
         """
         gets local account info, returns account object
         """
@@ -243,9 +251,9 @@ class Account:
         info = info.splitlines()
 
         if info[0] == label: # if the decryption was successful
-            publicKey = info[1]
+            publicKey = KeyFromString(info[1])
             #IP = info[2]
-            return Account(label, publicKey, privateKey=privateKey)
+            return Account(label, publicKey=publicKey, privateKey=privateKey)
         
         else:
             raise Exception("Incorrect Login Credentials")

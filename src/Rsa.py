@@ -23,7 +23,7 @@ def Encrypt(msg: str, key: tuple):
         a = hex(ord(i))[-2]
         b = hex(ord(i))[-1]
         c = a+b
-        print(i, c)
+        #print(i, c)
         if c == 'xd':
             c = '0x0d'
         # \n is xa in this algo, added this line for this edgecase 
@@ -49,6 +49,9 @@ def Decrypt(msg: str, key: tuple):
     Then decrypt all the integers of the list and join the list of chars together
     return the decrypted string
     """
+
+    if(msg == ""):
+        return ""
     
     
     # I wAS under the assumption that there is only a tuple input for this function 
@@ -68,7 +71,7 @@ def Decrypt(msg: str, key: tuple):
             ele += i
     int_list.append(int(ele, 16))
 
-    print(int_list)
+    #print(int_list)
 
     # decrypt ints of int list
     # join the list of strings and return the decrypted message
@@ -176,19 +179,31 @@ def get_prime(ksize: int):
         i = random.getrandbits(bit_length(ksize))
     return i
 
+def KeyFromString(msg: str) -> tuple:
+    parts = msg.split(':')
+    
+    # Convert the parts to integers
+    a = int(parts[0])
+    b = int(parts[1])
 
+    # Return the integers as a tuple
+    return (a, b)
+    
+def KeyToString(key: tuple) -> str:
+    return (str(key[0]) + ":" + str(key[1]))
+    
 
-def testing():
-    pub, priv = GeneratePair(1024)
+# def testing():
+#     pub, priv = GeneratePair(1024)
 
-    msg = "Hello this is a long message, blah blah\nHi!"
+#     msg = "Hello this is a long message, blah blah\nHi!"
 
-    encryptedText = Encrypt(msg, pub)
+#     encryptedText = Encrypt(msg, pub)
 
-    print("Encrypted:", encryptedText)
+#     print("Encrypted:", encryptedText)
 
-    clearText = Decrypt(encryptedText, priv)
+#     clearText = Decrypt(encryptedText, priv)
 
-    print("Decrypted:", clearText)
+#     print("Decrypted:", clearText)
 
-testing()
+# testing()
