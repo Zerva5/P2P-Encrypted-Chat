@@ -1,18 +1,59 @@
 import random
 import math
 
-def Encrypt(msg: str, key: str) -> str:
+def Encrypt(msg: str, key: tuple):
     """
-    Encrypt the given message with the given key, return encrypted bytes
+    Encrypt the given message with the given key, return encrypted string
+    This function will need to retain string sentences and characters
+    Therefore we will store the string within a list where each element is an integer
+    Then it is encrypted and changed to a hex value
+    Those hex values are then concatenated in a string to maintain the sentence structure
+    The return type of the message will be a string
     """
-    return msg
+    (k, modula) = key
 
-def Decrypt(msg: str, key: str) -> str:
-    """
-    decrypt the given message with the given key, return decrypted bytes
-    """
+    # int list stores integer representation of each char from string
+    int_lst = [int(hex(ord(i))[-2]+hex(ord(i))[-1], 16) for i in msg]
+    
+    # encrypt ints of list and converts them to hex values
+    enc_lst = []
+    for num in int_lst:
+        enc_lst.append(hex(pow(num, k, modula)))
 
-    return msg
+    # join list of hex values and create a string which retains sentence structure
+    return ''.join(enc_lst)
+
+
+def Decrypt(msg: str, key: tuple):
+    """
+    decrypt the given message with the given key, return decrypted msg
+    This function needs to decipher the string of hex values into a string
+    First separate string into int_list, each element is represented by an integer
+    Then decrypt all the integers of the list and join the list of chars together
+    return the decrypted string
+    """
+    (k, modula) = key
+
+    # int list stores the integer representation of each char from string
+    int_list = []
+    ele = ""
+    for i in msg:
+        if(i == 'x'):
+           ele = ele[:-1]
+           if len(ele) != 0:
+            int_list.append(int(ele, 16))
+           ele = ""
+        else:
+            ele += i
+    int_list.append(int(ele, 16))
+
+    # decrypt ints of int list
+    dec_lst = []
+    for num in int_list:
+        dec_lst.append(chr(pow(num, k, modula)))
+
+    # join the list of strings and return the decrypted message
+    return ''.join(dec_lst)
 
 
 
@@ -32,7 +73,7 @@ def GeneratePair(kSize: int):
 
     totient = (p-1) * (q-1)
 
-    # choose int e s.t. 1 < r < totient(n) and gcd(r, totienT(n)) = 1
+    # choose int public_key s.t. 1 < public_key < totient(n) and gcd(public_key, totienT(n)) = 1
     # if gcd = 1 that means they are coprime
     # keep generating public_key till they are coprime
     public_key = get_prime(totient)
