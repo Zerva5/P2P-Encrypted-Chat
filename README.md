@@ -14,6 +14,9 @@ Sylvain Taghaoussi
 Josh Blanch
 
 =======
+# Video
+https://www.youtube.com/watch?v=7m4rYDt7DeE
+
 # Requirements
 - SM must support 1:1 messaging and may support group chats (that’s optional)
 
