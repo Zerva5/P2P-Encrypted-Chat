@@ -81,9 +81,21 @@ Decrypt bytes via key
 IMPORTANT: 
 The code only works on unix due to use of SIGNAL,
 and only run the code while inside the /src directory
+
 1. Run it with "python main.py" or "python3 main.py"
-2. Waits for you to input commands.
-Commands are: Login, create account, delete account, delete message history, initiate chat.
+2. Waits for you to input valid commands listed below.
+
+COMMANDS:
+login
+create_account
+delete_account
+chat
+delete_history
+exit
+help
+logout
+create_contact
+list_contacts
 
 ## Initiate Chat
 - User gives label and IP to initiate chat with someone 
