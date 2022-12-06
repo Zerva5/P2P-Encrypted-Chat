@@ -86,8 +86,8 @@ class Account:
         Returns the label of the contact with the given public key, Raising an exception if they don't exist
         """
 
-        print("In verify contact:", publicKey)
-        print(self.contacts.items())
+        #print("In verify contact:", publicKey)
+        #print(self.contacts.items())
         
         for k,v in self.contacts.items():
             if v.publicKey == publicKey :
@@ -150,7 +150,7 @@ class Account:
         historyPath = _root + self.label + "/" + id + "/history.txt"
 
         fp = open(historyPath, "a")
-        fp.write('\n'.join(messages)) 
+        fp.write(Encrypt('\n'.join(messages), self.publicKey)) 
         fp.close()
         
         return

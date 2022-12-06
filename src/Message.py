@@ -30,7 +30,7 @@ class Message:
         Takes a message and looks for the format TIME-FLAG-CHECKSUM-BODY, extracts the data
         """
 
-        print(msgStr)
+        #print(msgStr)
         regex = r"^(\d+)-(INIT|CON|END)-([\da-fA-F]{32})-(.*)$"
         match = re.match(regex, msgStr)
         

@@ -60,11 +60,13 @@ class Chat:
 
         # Save message history
 
-        # strArray = []
-        # for m in self.messages:
-        #     strArray.append(m.encode())
+        print("Encrypting and saving message history...")
+
+        strArray = []
+        for m in self.messages:
+            strArray.append(m.encode())
             
-        # self.sender.StoreMessages(self.recipient.label, strArray)
+        self.sender.StoreMessages(self.recipient.label, strArray)
 
         # If we initiated the end of the chat
         if(not response):
@@ -105,7 +107,7 @@ class Chat:
                 
             self.chatSocket = Socket.socket()
 
-            print(self.sendIP, self.sendPort)
+            #print(self.sendIP, self.sendPort)
 
             self.chatSocket.connect((self.sendIP, self.sendPort))
 
@@ -122,6 +124,8 @@ class Chat:
                 self.needToSendKey = True
 
                 self.Send(keyMessage)
+
+                print("Keys Sent!")
 
                 self.needToSendKey = False
                 self.active = True
@@ -211,18 +215,21 @@ class Chat:
             
         try:
             if(not self.active): # if this is the first message being receieved. IE someone is initing a connection
-                print("decrypting with my private key")
+                if(chatDebug):
+                    print("decrypting with my private key")
                 msgStr = Rsa.Decrypt(msgStr, self.sender.privateKey)
 
 
             elif(self.awaitingKey): # if we've send the init and we are waiting for the key to be generated
-                print("decrypting with my private key and their public key in that order")
+                if(chatDebug):
+                    print("Decrypting session key with my private key and their public key in that order")
                 half = Rsa.Decrypt(msgStr, self.sender.privateKey)
                 msgStr = Rsa.Decrypt(half, self.recipient.publicKey) # decrypt using our key first and then their key
 
 
             else: # if we aren't waiting for the key then we just decrypt normally
-                print("Decrypting using sesion key")
+                if(chatDebug):
+                    print("Decrypting using sesion key")
                 msgStr = Rsa.Decrypt(msgStr, self.sessionKey)
 
                 
@@ -237,7 +244,7 @@ class Chat:
             print("After decrypting:", msgStr)
 
         try:
-            msg = Message.decode(msgStr, self.recipient, self.sender)
+            msg = Message.decode(msgStr, self.sender, self.recipient)
             #print(msg)
         except Exception as e:
             print(str(e))
@@ -266,7 +273,7 @@ class Chat:
 
         else:
             if(msg.flag == "INIT"):
-                print("New connection request, sending keys...")
+                print("New connection request, going to verify then send keys...")
 
                 msgSplit = msg.body.split(',')
 
@@ -284,7 +291,7 @@ class Chat:
 
                     try:
                         label = self.sender.VerifyContact(keySplit[1])
-                        print("Request is from:", label)
+                        print("VERIFIED: Request is from:", label)
                     except:
                         return Message("Person trying to connect not recognized", datetime.datetime.now(), self.sender, self.recipient)
 

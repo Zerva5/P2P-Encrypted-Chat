@@ -281,7 +281,7 @@ def InitChat(account: AC, recipientLabel: str, IP: str, sendPort=PORT, recvPort 
     recipientAccount.label = recipientLabel
 
     try:
-        print(account.privateKey)
+        #print(account.privateKey)
         recipientAccount = account.GetChatAccount(recipientLabel)
     except KeyError:
         
@@ -313,7 +313,7 @@ def InitChat_Wrapper(status: Status,argStr: list):
         return status,None
 
     try:
-        print(argStr[2])
+        #print(argStr[2])
         newChat = InitChat(status.account, argStr[0], argStr[1], int(argStr[2]), status.chat.recvPort)
     except ConnectionRefusedError:
         print("Connection refused!")
@@ -487,7 +487,7 @@ def InputLoop(status: Status):
                 continue
             else:
                 while(not status.chat.recvQueue.empty()):
-                    print(status.chat.active)
+                    #print(status.chat.active)
                     recvdMsg = status.chat.Receive(status.chat.recvQueue.get())
 
                     move_current_line_down() # moves the input prompt down one line
