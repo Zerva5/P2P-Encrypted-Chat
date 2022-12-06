@@ -234,12 +234,12 @@ def DeleteAccount_Wrapper(status: Status,argStr: list):
     return status, None
 
 
-def DeleteHistory(account: AC, recipient: AC) -> bool:
+def DeleteHistory(account: AC, recipient: str) -> bool:
     """
     Delete message history with a particular user. Must be logged in to the account in the chat to delete message history
     """
 
-    account.DeleteHistory(recipient.label)
+    account.DeleteHistory(recipient)
     
     return True
 
