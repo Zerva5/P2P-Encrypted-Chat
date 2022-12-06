@@ -78,9 +78,9 @@ Decrypt bytes via key
 
 
 ## "main.py"
-## IMPORTANT: 
-##      The code only works on unix due to use of SIGNAL
-##      Only run the code while inside the /src directory
+IMPORTANT: 
+The code only works on unix due to use of SIGNAL
+Only run the code while inside the /src directory
 1. Run it with "python main.py" or "python3 main.py"
 2. Waits for you to input commands.
 Commands are: Login, create account, delete account, delete message history, initiate chat.
