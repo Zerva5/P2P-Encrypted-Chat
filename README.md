@@ -58,10 +58,19 @@ Bob and Alice have now exchanged keys and will use this session key to encrypt a
 - Message hash for message integrity
 - Encrypt with sender private key and reciever public key
 ## Encryption/Decryption
-- Generate public/private key pair
-- Forward secrecy handshake (see docs)
-- Encrypt bytes via key
-- Decrypt bytes via key
+Generate public/private key pair
+    - this was done by using the RSA key generation method
+    - to do this, function such as euclidean algorithm and extended euclidean algorithm, get_prime(), is_prime() were created
+    - the GeneratePair() function returns a tuple of tuples: ((pubKey, modula), (privKey, modula))
+
+Forward secrecy handshake (see docs)
+    - This security method is explained in the key exchange section
+
+Encrypt strings via key
+    - the message is encrypted using the specified key and returns a encrypted string of hexadecimals representing characters
+
+Decrypt bytes via key
+    - the decrypt function uses the corresponding key to decrypt the encrypted hexadecimals back into a string
 
 ## Saving & Parsing message history
 - Save label, public key at top of file
