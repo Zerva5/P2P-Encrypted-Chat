@@ -58,10 +58,19 @@ Bob and Alice have now exchanged keys and will use this session key to encrypt a
 - Message hash for message integrity
 - Encrypt with sender private key and reciever public key
 ## Encryption/Decryption
-- Generate public/private key pair
-- Forward secrecy handshake (see docs)
-- Encrypt bytes via key
-- Decrypt bytes via key
+Generate public/private key pair
+    - this was done by using the RSA key generation method
+    - to do this, function such as euclidean algorithm and extended euclidean algorithm, get_prime(), is_prime() were created
+    - the GeneratePair() function returns a tuple of tuples: ((pubKey, modula), (privKey, modula))
+
+Forward secrecy handshake (see docs)
+    - This security method is explained in the key exchange section
+
+Encrypt strings via key
+    - the message is encrypted using the specified key and returns a encrypted string of hexadecimals representing characters
+
+Decrypt bytes via key
+    - the decrypt function uses the corresponding key to decrypt the encrypted hexadecimals back into a string
 
 ## Saving & Parsing message history
 - Save label, public key at top of file
@@ -69,9 +78,24 @@ Bob and Alice have now exchanged keys and will use this session key to encrypt a
 
 
 ## "main.py"
-1. Run it
-2. Waits for you to run command.
-Commands are: Login, create account, delete account, delete message history, initiate chat.
+IMPORTANT: 
+The code only works on unix due to use of SIGNAL,
+and only run the code while inside the /src directory
+
+1. Run it with "python main.py" or "python3 main.py"
+2. Waits for you to input valid commands listed below.
+
+COMMANDS:
+login
+create_account
+delete_account
+chat
+delete_history
+exit
+help
+logout
+create_contact
+list_contacts
 
 ## Initiate Chat
 - User gives label and IP to initiate chat with someone 
