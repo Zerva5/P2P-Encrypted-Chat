@@ -1,27 +1,31 @@
 from dataclasses import dataclass, field
 import sys
 import datetime
-from Account import Account
+from Account import Account as AC
 from Message import Message
 import socket as Socket
 #import _thread
 import threading
 import queue
 import datetime
+import Rsa
  
 print_lock = threading.Lock()
 
+chatDebug = False
+
 @dataclass    
 class Chat:
-    sender: Account
-    recipient: Account
+    sender: AC
+    recipient: AC
 
     sendIP: str = field(init=False)
     recvIP: str = field(init=False)
-    sessionKey: str = field(init=False) # Not 100% if its one key or two.
+    sessionKey: tuple = field(init=False) # Not 100% if its one key or two.
     messages: list[Message] = field(default_factory=list)# list is the same as an array
     active: bool = False
     awaitingKey: bool = False
+    needToSendKey: bool = False
     chatSocket: Socket.socket = Socket.socket(Socket.AF_INET, Socket.SOCK_STREAM)
     listenSocket: Socket.socket = Socket.socket(Socket.AF_INET, Socket.SOCK_STREAM)
 
@@ -45,7 +49,7 @@ class Chat:
 
     @staticmethod
     def NoneChat():
-        return Chat(Account.NoneAccount(), Account.NoneAccount())
+        return Chat(AC.NoneAccount(), AC.NoneAccount())
 
     def EndConnection(self, response=False):
         """
@@ -72,7 +76,7 @@ class Chat:
 
         # Get the chat ready for 
         self.active = False
-        self.recipient = Account.NoneAccount()
+        self.recipient = AC.NoneAccount()
         self.sendIP = ""
         self.sendPort = 0
         self.chatSocket.close()
@@ -101,20 +105,41 @@ class Chat:
                 
             self.chatSocket = Socket.socket()
 
+            print(self.sendIP, self.sendPort)
+
             self.chatSocket.connect((self.sendIP, self.sendPort))
 
             if(response): # someone initiated a chat with us
-                
+                print("Generating session keys...")
+
+                senderKey, recipientKey = Rsa.GeneratePair(2048)
+
+                keyMessage = Message("KEY:" + Rsa.KeyToString(recipientKey), datetime.datetime.now(), self.sender, self.recipient)
+                keyMessage.flag = "INIT"
+
+                self.sessionKey = senderKey
+
+                self.needToSendKey = True
+
+                self.Send(keyMessage)
+
+                self.needToSendKey = False
+                self.active = True
                 
                 pass
             else: # we are initiating the chat
-                print("Chat connection complete")
-                self.active = True
+
+
                 #initMessage = Message("PORT:"+str(self.recvPort). datetime.datetime.now(), self.sender, self.recipient)
-                initMessage = Message("PORT:"+str(self.recvPort), datetime.datetime.now(), self.sender, self.recipient)
+                initMessage = Message("PORT:"+str(self.recvPort) + ",KEY:" + str(Rsa.KeyToString(self.sender.publicKey)), datetime.datetime.now(), self.sender, self.recipient)
                 initMessage.flag = "INIT"
 
                 self.Send(initMessage)
+
+                print("Waiting for session keys...")
+
+                self.awaitingKey = True
+                self.active = True
 
                 #self.chatSocket.send(initMessage.encode().encode())
             #self.chatSocket.send("NEW".encode())
@@ -129,8 +154,27 @@ class Chat:
         Encrypt and send the message.
         Format message to have the message hash and timestamp
         """
+
+        if(chatDebug):
+            print("Before encryption:", message.encode())
+
+        if(self.needToSendKey): # We need to send the session key
+            cipherText = Rsa.Encrypt(Rsa.Encrypt(message.encode(), self.sender.privateKey), self.recipient.publicKey)
+            #print("Encrypting with my private key and recipient public key in that order. Public key:", self.recipient.publicKey)
+            self.needToSendKey = False
+
+        elif(not self.active): # We aren't active but we are initializing the chat
+            cipherText = Rsa.Encrypt(message.encode(), self.recipient.publicKey)
+            #print("Encrypting with recipient public key:", self.recipient.publicKey)
+            
+        else: # We are in the chat and just need to encrypt with the session key
+            cipherText = Rsa.Encrypt(message.encode(), self.sessionKey)
+            #print("Encrypting with session key:", self.sessionKey)            
+
+        if(chatDebug):
+            print("After Encryption:", cipherText)
     
-        self.chatSocket.send(message.encode().encode()) # Encode message into str then encode into bytes and send it
+        self.chatSocket.send(cipherText.encode()) # Encode message into bytes and send it
         self.messages.append(message) # add the message to the messages list
 
         
@@ -155,20 +199,51 @@ class Chat:
         Raise exception if message can't be decrypted or can't be verified by message hash
         """
 
-        print("From receive: " + str(self.active))
-        
+        #print("From receive: " + str(self.active))
+        msgStr = ""
+
         msgStr = raw[1].decode()
+
+        
+        #print(self.sender.privateKey)
+        if(chatDebug):
+            print("Before decrypting:", msgStr)
+            
+        try:
+            if(not self.active): # if this is the first message being receieved. IE someone is initing a connection
+                print("decrypting with my private key")
+                msgStr = Rsa.Decrypt(msgStr, self.sender.privateKey)
+
+
+            elif(self.awaitingKey): # if we've send the init and we are waiting for the key to be generated
+                print("decrypting with my private key and their public key in that order")
+                half = Rsa.Decrypt(msgStr, self.sender.privateKey)
+                msgStr = Rsa.Decrypt(half, self.recipient.publicKey) # decrypt using our key first and then their key
+
+
+            else: # if we aren't waiting for the key then we just decrypt normally
+                print("Decrypting using sesion key")
+                msgStr = Rsa.Decrypt(msgStr, self.sessionKey)
+
+                
+            #print(msgStr)
+        except Exception as e:
+            raise e
+            print("some exception decrypting:", str(e))
+        
         addr = raw[0]
 
+        if(chatDebug):
+            print("After decrypting:", msgStr)
+
         try:
-            msg = Message.decode(raw[1], self.recipient, self.sender)
+            msg = Message.decode(msgStr, self.recipient, self.sender)
+            #print(msg)
         except Exception as e:
             print(str(e))
+            
             return Message("---Message Integrity Error---", datetime.datetime.now(), self.recipient, self.sender)
         
-
-        #print("Addr", addr)
-        #print(msgStr)
 
         if(msg.flag == "END"):
             self.EndConnection(response=True)
@@ -181,22 +256,50 @@ class Chat:
                 return msg
 
             elif(msg.flag=="INIT"):
-                raise Exception("got init while still in a chat")
+                msgSplit = msg.body.split(':', 1)
+                #print(msgSplit)
+                if(msgSplit[0] == "KEY"):
+                    self.sessionKey = Rsa.KeyFromString(msgSplit[1])
+                    self.awaitingKey = False
+                else:
+                    raise Exception("wrong initial message format, something is wrong")
+
         else:
             if(msg.flag == "INIT"):
-                print("New connection request, awaiting key exchange...")
+                print("New connection request, sending keys...")
 
-                msgSplit = msg.body.split(':')
-                if(msgSplit[0] == "PORT"):
-                    self.sendPort = int(msgSplit[1])
+                msgSplit = msg.body.split(',')
+
+                portSplit = msgSplit[0].split(':')
+                keySplit = msgSplit[1].split(':', 1)
+
+                if(portSplit[0] == "PORT"):
+                    self.sendPort = int(portSplit[1])
                     self.sendIP = addr[0]
+                else:
+                    raise Exception("wrong initial message format, something is wrong")
+                    
+                if(keySplit[0] == "KEY"):
+                    keyTuple = Rsa.KeyFromString(keySplit[1])
 
-                    self.InitConnection(response=True)
+                    try:
+                        label = self.sender.VerifyContact(keySplit[1])
+                        print("Request is from:", label)
+                    except:
+                        return Message("Person trying to connect not recognized", datetime.datetime.now(), self.sender, self.recipient)
+
+                    #print(label)
+                
+                    if(label in self.sender.contacts):
+
+                        self.recipient.label = label
+                        self.recipient.publicKey = keyTuple
+                        self.recipient.IP = self.sendIP                        
+                        self.InitConnection(response=True)
+
                 else:
                     print("wrong initial message format, something is wrong")
 
-                    
-                self.active = True
             else:
                 raise Exception("Got a message flag that wasn't INIT:" + msg.flag)
 

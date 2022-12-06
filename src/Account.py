@@ -85,6 +85,10 @@ class Account:
         """
         Returns the label of the contact with the given public key, Raising an exception if they don't exist
         """
+
+        print("In verify contact:", publicKey)
+        print(self.contacts.items())
+        
         for k,v in self.contacts.items():
             if v.publicKey == publicKey :
                 return k
@@ -128,9 +132,9 @@ class Account:
             info = Decrypt(fileContents, self.privateKey)
             info = info.splitlines()
 
-            publicKey = info[1]
-            IP = info[2]
-            return Account(contactLabel, publicKey, IP)
+            publicKey = KeyFromString(info[1])
+            #IP = info[2]
+            return Account(contactLabel, publicKey = publicKey)
 
         except KeyError:
             raise KeyError("GetChatAccount called with label to nonexistent account")

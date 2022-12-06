@@ -54,11 +54,12 @@ class Message:
         return (dt, flag, checksum, body)
 
 
-    @staticmethod
-    def decode(msg: bytes, sender, recipient):
-        time, flag, checksum, body = Message.decode_string(msg.decode())
 
-        return Message(body, time, sender, recipient, flag, checksum=checksum)
+    @staticmethod
+    def decode(msg: str, sender, recipient):
+        time, flag, checksum, body = Message.decode_string(msg)
+
+        return Message(body, time, sender, recipient, flag, checksum=checksum)    
         
 
 # from Account import Account

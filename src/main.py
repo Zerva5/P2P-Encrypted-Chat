@@ -39,7 +39,7 @@ def RecvLoop(status: Status, listenSocket: Socket.socket):
 
                 #print("done")
             else:
-                messageStr = connection.recv(2048)
+                messageStr = connection.recv(4096)
 
                 
                 if(messageStr):
@@ -92,7 +92,7 @@ def InputTimedOut(signum, frame):
     raise InputTimeout
     
 
-#signal.signal(signal.SIGALRM, InputTimedOut)
+signal.signal(signal.SIGALRM, InputTimedOut)
 
 def Exit_Wrapper(status: Status, argList: list):
 
@@ -428,7 +428,7 @@ def InputLoop(status: Status):
     while(True):
 
         try:
-            #signal.alarm(timeout)
+            signal.alarm(timeout)
             if(status.chat.active):
                 # Don't rewrite the ">" prompt
                 if(noPrompt):
@@ -458,7 +458,7 @@ def InputLoop(status: Status):
                     commandStr = input(status.account.label + " > ")
 
                 # Stop the signal timeout 
-                #signal.alarm(0)
+                signal.alarm(0)
                     
                 cmdIndex = -1
                 cmdArgs = []

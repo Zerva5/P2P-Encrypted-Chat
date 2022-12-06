@@ -68,6 +68,7 @@ def Decrypt(msg: str, key: tuple):
             int_list.append(int(ele, 16))
            ele = ""
         else:
+            #print(i)
             ele += i
     int_list.append(int(ele, 16))
 
@@ -79,8 +80,12 @@ def Decrypt(msg: str, key: tuple):
     res = []
     for num in int_list:
         exp = pow(num, k, modula)
-        
-        a = chr(exp)
+
+        try:
+            a = chr(exp)
+        except Exception as e:
+            print("REASON FOR EXCEPTION:", exp)
+            raise e
         res.append(a)
     
     return ''.join(res)
