@@ -14,8 +14,23 @@ Sylvain Taghaoussi
 Josh Blanch
 
 =======
+
+# ONLY WORKS ON UNIX!
+This is because of the usage of `signal.alarm()`. 
+
+See [`signal.alarm()`](https://docs.python.org/3/library/signal.html#signal.alarm) documentation. There are [workarounds](https://stackoverflow.com/questions/8420422/python-windows-equivalent-of-sigalrm) but they were not discovered until after the project was complete.
+
+
 # Video
 https://www.youtube.com/watch?v=7m4rYDt7DeE
+
+
+# Usage
+1. Clone the repo
+2. Run `python main.py` or `python main.py -debug`.
+3. type `help` to see commands. 
+4. Start chatting!
+
 
 # Requirements
 - SM must support 1:1 messaging and may support group chats (that’s optional)
@@ -37,12 +52,6 @@ https://www.youtube.com/watch?v=7m4rYDt7DeE
 - Users can sign up for an account and also delete their account
 
 - SM must be implemented in Python
-
-# Design
-
-Use a Data Flow Diagrams (DFD) to design your application. Specify all security mechanisms used in your system, including cryptographic ciphers, keys, key generation mechanisms, and security protocols. Use the gitlab Wiki page for your work. Make sure that each team member edits their own contribution / annotation themselves.
-
-Explain how your design implements the requirements above.
 
 # Key Exchange
 Bob initializes chat with Alice and sends her his public key encrypted with her public key. 
