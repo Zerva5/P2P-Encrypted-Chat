@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import ClassVar
 import sys
 import datetime
 from Account import Account as AC
@@ -9,15 +10,18 @@ import threading
 import queue
 import datetime
 import Rsa
+
  
 print_lock = threading.Lock()
 
-chatDebug = False
+
 
 @dataclass    
 class Chat:
     sender: AC
     recipient: AC
+
+    DEBUGMODE: ClassVar[bool] = False
 
     sendIP: str = field(init=False)
     recvIP: str = field(init=False)
@@ -159,24 +163,26 @@ class Chat:
         Format message to have the message hash and timestamp
         """
 
-        if(chatDebug):
+        if(Chat.DEBUGMODE):
             print("Before encryption:", message.encode())
 
         if(self.needToSendKey): # We need to send the session key
             cipherText = Rsa.Encrypt(Rsa.Encrypt(message.encode(), self.sender.privateKey), self.recipient.publicKey)
-            #print("Encrypting with my private key and recipient public key in that order. Public key:", self.recipient.publicKey)
+            print("===DEBUG:", "Encrypting with my private key and recipient public key in that order. Public key:", self.recipient.publicKey)
             self.needToSendKey = False
 
         elif(not self.active): # We aren't active but we are initializing the chat
             cipherText = Rsa.Encrypt(message.encode(), self.recipient.publicKey)
-            #print("Encrypting with recipient public key:", self.recipient.publicKey)
+            if(Chat.DEBUGMODE):
+                print("===DEBUG:","Encrypting with recipient public key:", self.recipient.publicKey)
             
         else: # We are in the chat and just need to encrypt with the session key
             cipherText = Rsa.Encrypt(message.encode(), self.sessionKey)
-            #print("Encrypting with session key:", self.sessionKey)            
+            if(Chat.DEBUGMODE):
+                print("===DEBUG: Encrypting with session key:", self.sessionKey)            
 
-        if(chatDebug):
-            print("After Encryption:", cipherText)
+        if(Chat.DEBUGMODE):
+            print("===DEBUG","After Encryption:", cipherText)
     
         self.chatSocket.send(cipherText.encode()) # Encode message into bytes and send it
         self.messages.append(message) # add the message to the messages list
@@ -186,14 +192,7 @@ class Chat:
 
     def InputPrompt(self):
         return self.sender.label + " >>>> "
-
-    def IncomingConnection(self, addr, initialMessage):
-        ## somehow figure out their name
-        ## If they 
-
-        ## do the key handshake
-        pass
-        
+     
     
 
     def Receive(self, raw) -> Message:
@@ -210,25 +209,25 @@ class Chat:
 
         
         #print(self.sender.privateKey)
-        if(chatDebug):
+        if(Chat.DEBUGMODE):
             print("Before decrypting:", msgStr)
             
         try:
             if(not self.active): # if this is the first message being receieved. IE someone is initing a connection
-                if(chatDebug):
+                if(Chat.DEBUGMODE):
                     print("decrypting with my private key")
                 msgStr = Rsa.Decrypt(msgStr, self.sender.privateKey)
 
 
             elif(self.awaitingKey): # if we've send the init and we are waiting for the key to be generated
-                if(chatDebug):
+                if(Chat.DEBUGMODE):
                     print("Decrypting session key with my private key and their public key in that order")
                 half = Rsa.Decrypt(msgStr, self.sender.privateKey)
                 msgStr = Rsa.Decrypt(half, self.recipient.publicKey) # decrypt using our key first and then their key
 
 
             else: # if we aren't waiting for the key then we just decrypt normally
-                if(chatDebug):
+                if(Chat.DEBUGMODE):
                     print("Decrypting using sesion key")
                 msgStr = Rsa.Decrypt(msgStr, self.sessionKey)
 
@@ -240,7 +239,7 @@ class Chat:
         
         addr = raw[0]
 
-        if(chatDebug):
+        if(Chat.DEBUGMODE):
             print("After decrypting:", msgStr)
 
         try:

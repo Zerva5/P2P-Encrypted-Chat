@@ -17,6 +17,7 @@ import queue
 
 #from Message import Message
 
+DEBUGMODE = False
 
 COMMANDS = ["", "login", "create_account", "delete_account", "chat", "delete_history", "exit", "help", "logout", "create_contact", "list_contacts"]
 NUMARGS = [0, 3, 2, 2, 4, 2, 1, 1, 1, 3, 1]
@@ -110,8 +111,8 @@ def Help_Wrapper(status: Status, argList: list):
     print("""
         Secure Messaging Application
         
-        Options:
-        
+        Commands:
+    
             login           arguments: <account_name> <password>
             
             create_account  arguments: <account_name> 
@@ -120,11 +121,17 @@ def Help_Wrapper(status: Status, argList: list):
             
             chat            arguments: <account_name> <IP> <port> 
             
-            delete_history  arguments: <account_namee> <password>
+            delete_history  arguments: <account_name> <password>
             
             exit            arguments: None
             
             logout          arguments: None
+
+            help            arguments: None
+
+            create_contact  arguments: <account_name> <public_key>
+
+            list_contacts   arguments: None
         
         
         """)
@@ -255,6 +262,9 @@ def DeleteHistory_Wrapper(status: Status, argStr: list):
     return status, None
 
 def CreateContact(status: Status, label: str, publicKey: str):
+
+   
+
     newContact = status.account.NewContact(label, publicKey)
 
     return newContact
@@ -262,6 +272,10 @@ def CreateContact(status: Status, label: str, publicKey: str):
 
 def CreateContact_Wrapper(status: Status, argStr: list):
 
+    if(not status.account.active or status.account == AC.NoneAccount()):
+        print("Please login before creating a contact!")
+        return status, None
+        
     newAccount = CreateContact(status, argStr[0], argStr[1])
 
     print("Added", newAccount.label, "as a new contact. Their public key is", Rsa.KeyToString(newAccount.publicKey))
@@ -348,7 +362,7 @@ def ParseCommand(cmdStr: str):
 
     ## Now we parse the parameters
     if(NUMARGS[cmdIndex] != len(strSplit)):
-        print("Need {} argument but given {}".format(NUMARGS[cmdIndex],len(strSplit)-1))
+        print("Need {} argument but given {}".format(NUMARGS[cmdIndex] - 1,len(strSplit)-1))
         raise ArgumentError("Invalid number of arguments!")
 
     ## now we can assume they are the right number of args
@@ -387,10 +401,16 @@ def Logout_Wrapper(status, cmdArgs):
 def ListContacts_Wrapper(status: Status, cmdArgs):
 
     #print(status.account.contacts)
+    if(not status.account.active or status.account == AC.NoneAccount()):
+        print("Please login before creating a contact!")
+        return status, None
 
-    print("Contacts:")
-    for key in status.account.contacts:
-        print(key + ":" + status.account.contacts[key][1])
+    if(len(status.account.contacts.keys()) == 0):
+        print("No contacts found")
+    else:
+        print("Contacts:")
+        for key in status.account.contacts:
+            print(key + ":" + status.account.contacts[key][1])
         
 
     return status, None
@@ -480,7 +500,8 @@ def InputLoop(status: Status):
 
         except InputTimeout:
             ## Check message queue
-            #print("checking messages")
+            # if(DEBUGMODE):
+            #     print("===DEBUG:","checking messages")
 
             if(status.chat.recvQueue.empty()):
                 noPrompt = True
@@ -516,6 +537,16 @@ def InputLoop(status: Status):
 
 
 def main():
+
+    try:
+        if(sys.argv[1] == "-debug"):
+            global DEBUGMODE
+            DEBUGMODE = True
+            CH.DEBUGMODE = True
+    except:
+        pass
+        
+    
     status = Status(CH.NoneChat(), AC.NoneAccount())
     #status = StartRecv(status)
     #print(status.chat.recvPort)
